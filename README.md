@@ -6,8 +6,8 @@ This document provides a comprehensive, curated list and analysis of modern code
 
 ## Table of Contents
 
-- [1. The Imperative for Secure Code Execution in Modern Development](#1-the-imperative-for-secure-code-execution-in-modern-development)
-- [2. Foundational Sandboxing Technologies: An Architectural Overview](#2-foundational-sandboxing-technologies-an-architectural-overview)
+- [1. Why Secure Code Execution Matters Now](#1-why-secure-code-execution-matters-now)
+- [2. Sandboxing Technologies](#2-sandboxing-technologies)
   - [2.1. Micro-Virtual Machines (MicroVMs): Hardware-Level Isolation](#21-micro-virtual-machines-microvms-hardware-level-isolation)
   - [2.2. Application Kernels: Intercepting the System Call](#22-application-kernels-intercepting-the-system-call)
   - [2.3. Language Runtimes: Lightweight, High-Speed Isolation](#23-language-runtimes-lightweight-high-speed-isolation)
@@ -22,10 +22,9 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.7. Fly.io: Modern Application Hosting with MicroVMs](#47-flyio-modern-application-hosting-with-microvms)
   - [4.8. Kata Containers: Secure Container Runtime](#48-kata-containers-secure-container-runtime)
   - [4.9. Other Notable Platforms & Cloud Development Environments (CDEs)](#49-other-notable-platforms--cloud-development-environments-cdes)
-- [5. Additional Sandboxing Technologies & Products](#5-additional-sandboxing-technologies--products)
 - [6. Docker vs MicroVM for Sandboxing](#6-docker-vs-microvm-for-sandboxing)
 - [7. Choosing Your Sandbox: A Decision Framework](#7-choosing-your-sandbox-a-decision-framework)
-  - [Axis 1: Security vs. Performance vs. Fidelity (The Sandbox Trilemma)](#axis-1-security-vs-performance-vs-fidelity-the-sandbox-trilemma)
+  - [Axis 1: Security vs. Performance vs. Compatibility](#axis-1-security-vs-performance-vs-compatibility)
   - [Axis 2: Stateless Functions vs. Stateful Workloads](#axis-2-stateless-functions-vs-stateful-workloads)
   - [Axis 3: SaaS Convenience vs. Self-Hosted Control](#axis-3-saas-convenience-vs-self-hosted-control)
   - [Axis 4: AI/Agent-Specific vs. General-Purpose](#axis-4-aiagent-specific-vs-general-purpose)
@@ -39,11 +38,11 @@ Code sandboxing has moved from a niche security tool to essential infrastructure
 
 **User-Programmable Platforms**: Many SaaS applications, data tools, and developer platforms now let users submit their own code through plugins, custom scripts, or data transformations. This requires secure isolation to prevent security vulnerabilities. The same need exists for [Cloud Development Environments (CDEs)](https://www.gitpod.io/cde) and online IDEs like GitHub Codespaces, Gitpod, and Coder, which must isolate each user's environment from the host infrastructure and other users.
 
-Sandboxing has changed from a security-only tool to a platform feature that enables new capabilities. The focus has shifted from just preventing attacks to safely enabling powerful functionality. This means sandboxes must be fast, reliable, and easy to use—not just secure. Modern solutions are judged by their SDKs, execution speed, and integration ease, because sandboxes are now part of core product functionality.
+Sandboxing has changed from a security-only tool to a platform feature that enables new capabilities. The focus has shifted from just preventing attacks to safely enabling powerful functionality. This means sandboxes must be fast, reliable, and easy to use - not just secure. Modern solutions are judged by their SDKs, execution speed, and integration ease, because sandboxes are now part of core product functionality.
 
 ## **2\. Sandboxing Technologies**
 
-Different sandboxing technologies make different trade-offs between three key factors: **Security Isolation**, **Performance & Startup Speed**, and **Compatibility** (how closely the sandbox behaves like a real machine). No approach is perfect—each makes different compromises.
+Different sandboxing technologies make different trade-offs between three key factors: **Security Isolation**, **Performance & Startup Speed**, and **Compatibility** (how closely the sandbox behaves like a real machine). No approach is perfect - each makes different compromises.
 
 ### **2.1. Micro-Virtual Machines (MicroVMs): Hardware-Level Isolation**
 
@@ -350,7 +349,7 @@ This is the most important trade-off. Your choice depends on your threat model.
 
 ### **Axis 2: Stateless Functions vs. Stateful Workloads**
 
-The nature of your workload—whether it's a one-off task or a long-running process—is important.
+The nature of your workload - whether it's a one-off task or a long-running process - is important.
 
 * **For Stateless/Ephemeral Tasks:** If you need to run quick, isolated tasks that don't require preserved state (e.g., grading code submissions, data transformations), most solutions work. However, those optimized for fast, ephemeral execution are better.  
   * **Recommended:** **microsandbox** in its temporary mode (msx) is explicitly designed for this.  
