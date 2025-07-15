@@ -8,9 +8,18 @@ This document provides a comprehensive, curated list and analysis of modern code
 
 - [1. Why Secure Code Execution Matters Now](#1-why-secure-code-execution-matters-now)
 - [2. Sandboxing Technologies](#2-sandboxing-technologies)
+  - [Sandboxing Technologies Feature Matrix](#sandboxing-technologies-feature-matrix)
   - [2.1. Micro-Virtual Machines (MicroVMs): Hardware-Level Isolation](#21-micro-virtual-machines-microvms-hardware-level-isolation)
+    - [Firecracker](#firecracker)
+    - [libkrun](#libkrun)
   - [2.2. Application Kernels: Intercepting the System Call](#22-application-kernels-intercepting-the-system-call)
+    - [gVisor](#gvisor)
+    - [nsjail](#nsjail)
   - [2.3. Language Runtimes: Lightweight, High-Speed Isolation](#23-language-runtimes-lightweight-high-speed-isolation)
+    - [WebAssembly (WASM)](#webassembly-wasm)
+    - [V8 Isolates](#v8-isolates)
+  - [2.4. Containerization: Namespace-Based Isolation](#24-containerization-namespace-based-isolation)
+    - [Docker/OCI Containers](#dockeroci-containers)
 - [3. Feature Matrix: At-a-Glance Comparison](#3-feature-matrix-at-a-glance-comparison)
 - [4. In-Depth Platform Profiles](#4-in-depth-platform-profiles)
   - [4.1. e2b: The AI Agent Sandbox Runtime](#41-e2b-the-ai-agent-sandbox-runtime)
@@ -54,6 +63,7 @@ The following table provides a comparative overview of the core sandboxing techn
 | **libkrun** | Hardware-Level | ~Container-speed | Low | KVM/Hardware Virtualization | Full Linux | Embedded sandboxing, self-hosted platforms |
 | **gVisor** | Application Kernel | ~100ms | Medium | Any Linux host | High (Linux API subset) | Multi-tenant containers, cloud services |
 | **nsjail** | Process-Level | ~50ms | Very Low | Any Linux host | High (filtered syscalls) | Code execution, long-running processes |
+| **Docker/OCI** | Namespace-Level | ~10-50ms | Very Low | Any Linux host | Full Linux | Development, CI/CD, application deployment |
 | **WebAssembly** | Runtime-Level | ~10ms | Very Low | Any platform | Limited (WASM modules) | Edge computing, plugin systems |
 | **V8 Isolates** | Runtime-Level | ~1ms | Very Low | Any platform | JavaScript only | Edge functions, serverless JavaScript |
 
@@ -70,7 +80,7 @@ The following table provides a comparative overview of the core sandboxing techn
 
 MicroVMs provide the strongest security isolation. They use hardware virtualization to give each sandbox its own kernel, memory space, and virtual devices. This creates a hardware-enforced boundary between guest code and the host operating system, avoiding the shared kernel vulnerabilities of containers. The key innovation is dramatically faster boot times, making VMs practical for short-lived workloads.
 
-#### **In-Depth Analysis: Firecracker**
+#### **Firecracker**
 
 Developed and open-sourced by Amazon Web Services (AWS), [Firecracker](https://firecracker-microvm.github.io/) is a virtual machine monitor (VMM) that uses the Linux Kernel Virtual Machine (KVM) to create and manage lightweight microVMs. Its design philosophy is minimalist. It intentionally excludes all non-essential devices like USB controllers, graphics cards, and sound cards, which drastically reduces the potential attack surface and lowers the memory overhead of each microVM to less than 5 MiB.
 
@@ -79,7 +89,7 @@ Developed and open-sourced by Amazon Web Services (AWS), [Firecracker](https://f
 * **Security Model:** For defense-in-depth, Firecracker employs a companion "jailer" process. The jailer sets up a secure environment using Linux cgroups and namespaces to isolate the Firecracker VMM process itself before dropping its privileges. This provides a second layer of containment in the unlikely event that the virtualization barrier is compromised.  
 * **Adoption:** This technology is the foundation for platforms like **e2b**, which leverages Firecracker to provide its secure, fast-starting sandboxes for AI agents.
 
-#### **In-Depth Analysis: libkrun**
+#### **libkrun**
 
 Similar to Firecracker, libkrun is a library-based virtualization solution designed to create lightweight, KVM-based virtual machines with minimal overhead. It is the core technology powering [**microsandbox**](https://github.com/microsandbox/microsandbox). By providing virtualization as a library, it allows applications to embed high-security sandboxing directly, achieving genuine hardware-level isolation with its own kernel and memory space, while maintaining startup times competitive with containers.
 
@@ -89,7 +99,7 @@ The emergence of microVM technologies like Firecracker and libkrun has rendered 
 
 This approach offers an intermediate level of isolation between microVMs and standard containers. Instead of running a full guest kernel, an "application kernel" runs in user-space and intercepts all system calls made by the sandboxed process. It fulfills these requests itself, making only a limited and carefully vetted set of its own system calls to the true host kernel.
 
-#### **In-Depth Analysis: gVisor**
+#### **gVisor**
 
 Developed and used extensively by Google, [gVisor](https://gvisor.dev/) is an open-source application kernel written in the memory-safe language Go.
 
@@ -97,7 +107,7 @@ Developed and used extensively by Google, [gVisor](https://gvisor.dev/) is an op
 * **Advantages:** gVisor provides significantly stronger isolation than standard containers and has the major advantage of not requiring hardware virtualization support, meaning it can run on any Linux host, whether bare-metal or a VM. It is used in production to secure Google services like Cloud Run, App Engine, and Cloud Functions. It also offers advanced features like the ability to checkpoint and restore a running container's state.  
 * **Disadvantages:** This interception layer can introduce performance overhead compared to running directly on the host kernel. Furthermore, because gVisor re-implements the Linux API, there can be compatibility issues if an application uses obscure or newly introduced syscalls that gVisor does not yet support.
 
-#### **In-Depth Analysis: nsjail**
+#### **nsjail**
 
 [nsjail](https://github.com/google/nsjail) is a process isolation tool that leverages Linux namespaces and seccomp-bpf filters to create secure sandboxed environments. Originally developed by Google and used in production environments, it provides a lightweight alternative to full virtualization when strong isolation is needed.
 
@@ -110,14 +120,14 @@ Developed and used extensively by Google, [gVisor](https://gvisor.dev/) is an op
 
 This is the most lightweight form of sandboxing, where isolation is enforced by the language runtime itself rather than the operating system or hardware. This approach offers the fastest startup times and lowest resource overhead but is the most restrictive in terms of compatibility.
 
-#### **In-Depth Analysis: WebAssembly (WASM)**
+#### **WebAssembly (WASM)**
 
 [WebAssembly](https://webassembly.org/) is a binary instruction format designed as a portable compilation target for a stack-based virtual machine. Its [security model](https://webassembly.org/docs/security/) is built on two fundamental principles:
 
 * **Memory Safety:** WASM code executes in a linear memory space that is completely isolated from the host process's memory. Every memory access is automatically bounds-checked by the runtime, preventing buffer overflows from affecting the host or other WASM modules. The call stack is also managed by the runtime and is inaccessible to the WASM code, which neutralizes traditional stack-smashing attacks.  
 * **Capability-Based Security:** A WASM module is inert by default. It has no intrinsic ability to access the file system, network, or any other external resource. To perform any I/O, the host environment must explicitly provide these capabilities by passing in functions (known as "imports") during instantiation. This "default-deny" posture ensures that a module can only do what it has been explicitly permitted to do.
 
-#### **In-Depth Analysis: V8 Isolates**
+#### **V8 Isolates**
 
 V8 Isolates are a core feature of Google's V8 JavaScript engine. An Isolate represents a completely independent instance of the V8 engine, with its own memory heap, garbage collector, and execution state.
 
@@ -125,6 +135,20 @@ V8 Isolates are a core feature of Google's V8 JavaScript engine. An Isolate repr
   **Cloudflare Workers** and [**Deno Deploy**](https://deno.com/blog/anatomy-isolate-cloud) to securely run code from thousands of different customers on the same physical servers with extremely low overhead.  
 * **Language-Specific Limitations:** While V8 Isolates excel at JavaScript execution, they are not well-suited for Python workloads. The V8 engine is specifically designed and optimized for JavaScript's execution model, memory management, and runtime characteristics. Python applications require different runtime environments and cannot benefit from V8's isolation technology. For Python sandboxing, alternative approaches like nsjail, gVisor, or microVMs are more appropriate choices.
 * **The V8 Sandbox:** It is important to distinguish V8 Isolates from the newer [V8 Sandbox](https://chromium.googlesource.com/v8/v8.git/+/refs/heads/main/src/sandbox/README.md). The V8 Sandbox is a further defense-in-depth measure that operates *within* an isolate. It reserves a large region of virtual address space and ensures that all V8 heap pointers are confined to that space. This is designed to mitigate the impact of potential vulnerabilities *within the V8 engine itself*, preventing an exploit from achieving arbitrary memory read/write capabilities outside the sandboxed region. This demonstrates a multi-layered approach to security, even within the runtime.
+
+### **2.4. Containerization: Namespace-Based Isolation**
+
+Containerization represents the most widely adopted approach to application isolation, using Linux namespaces and control groups (cgroups) to create isolated environments that share the host kernel. While not providing the strongest security boundaries, containers offer an excellent balance of compatibility, performance, and operational simplicity.
+
+#### **Docker/OCI Containers**
+
+[Docker](https://www.docker.com/) and the broader [Open Container Initiative (OCI)](https://opencontainers.org/) ecosystem represent the de facto standard for containerization. Containers package applications with their dependencies while providing process-level isolation through kernel features.
+
+* **Mechanism:** Containers use multiple Linux kernel features for isolation: namespaces (PID, mount, network, user, UTS, IPC) separate process trees, filesystems, and network stacks; cgroups limit and monitor resource usage (CPU, memory, I/O); and security modules like AppArmor or SELinux provide additional access controls. Unlike VMs, containers share the host kernel, making them lightweight but potentially less secure.
+* **Advantages:** Extremely fast startup times (10-50ms), minimal resource overhead, extensive ecosystem of tools and images, excellent compatibility with existing applications, and mature orchestration platforms like Kubernetes. The shared kernel model enables efficient resource utilization and makes containers ideal for microservices architectures.
+* **Security Considerations:** The shared kernel creates potential attack vectors, as demonstrated by container escape vulnerabilities. However, most security incidents (69% according to industry reports) result from misconfigurations rather than kernel exploits. Proper configuration, avoiding privileged containers, and using minimal base images significantly reduce risks.
+* **Use Cases:** Ideal for trusted application deployment, development environments, CI/CD pipelines, and microservices architectures. Less suitable for running untrusted code from external sources or scenarios requiring the strongest security isolation.
+* **Enhanced Security Options:** Technologies like gVisor provide additional security layers for containers, while Kata Containers offer VM-level isolation with container compatibility.
 
 ## **3\. Feature Matrix: At-a-Glance Comparison**
 
@@ -165,7 +189,7 @@ This section provides a detailed, structured analysis of each major platform, ex
 
 ### **4.2. Daytona: Secure & Elastic Infrastructure for AI Code**
 
-* **Overview:** Daytona positions itself as a comprehensive platform for both secure AI code execution and enterprise development environment management. It emphasizes lightning-fast sandbox startup times (under 200ms), stateful persistence, and a robust SDK for programmatic control. It aims to provide a secure, elastic runtime for AI agents while also serving as a full-featured Cloud Development Environment (CDE).  
+* **Overview:** Daytona positions itself as a comprehensive platform for both secure AI code execution and enterprise development environment management. It emphasizes lightning-fast sandbox startup times (under 200ms), stateful persistence, and a robust SDK for programmatic control. It aims to provide a secure, elastic runtime for AI agents while also serving as a full-featured Cloud Development Environment (CDE). For a detailed comparison with other AI sandboxing solutions, see this [analysis of Daytona vs microsandbox](https://pixeljets.com/blog/ai-sandboxes-daytona-vs-microsandbox/).  
 * **GitHub & Website:** The main repository is at [github.com/daytonaio/daytona](https://github.com/daytonaio/daytona), and the official website is [daytona.io](https://daytona.io).  
 * **Launch Date:** The company was founded in 2023, and its open-source version gained significant community traction and funding in mid-2024.  
 * **GitHub Stars:** The project has achieved remarkable popularity, with over 21,000 stars.  
