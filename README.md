@@ -44,6 +44,28 @@ Sandboxing has changed from a security-only tool to a platform feature that enab
 
 Different sandboxing technologies make different trade-offs between three key factors: **Security Isolation**, **Performance & Startup Speed**, and **Compatibility** (how closely the sandbox behaves like a real machine). No approach is perfect - each makes different compromises.
 
+## **Sandboxing Technologies Feature Matrix**
+
+The following table provides a comparative overview of the core sandboxing technologies, highlighting their key characteristics and trade-offs:
+
+| Technology | Isolation Level | Startup Time | Resource Overhead | Hardware Requirements | Compatibility | Primary Use Cases |
+| :---- | :---- | :---- | :---- | :---- | :---- | :---- |
+| **Firecracker** | Hardware-Level | ~125ms | Low (5MB per VM) | KVM/Hardware Virtualization | Full Linux | Serverless, AI agents, ephemeral workloads |
+| **libkrun** | Hardware-Level | ~Container-speed | Low | KVM/Hardware Virtualization | Full Linux | Embedded sandboxing, self-hosted platforms |
+| **gVisor** | Application Kernel | ~100ms | Medium | Any Linux host | High (Linux API subset) | Multi-tenant containers, cloud services |
+| **nsjail** | Process-Level | ~50ms | Very Low | Any Linux host | High (filtered syscalls) | Code execution, long-running processes |
+| **WebAssembly** | Runtime-Level | ~10ms | Very Low | Any platform | Limited (WASM modules) | Edge computing, plugin systems |
+| **V8 Isolates** | Runtime-Level | ~1ms | Very Low | Any platform | JavaScript only | Edge functions, serverless JavaScript |
+
+### **Key Characteristics:**
+
+- **Isolation Level**: The strength of security boundaries between sandboxed processes
+- **Startup Time**: Time to initialize and start executing code in the sandbox
+- **Resource Overhead**: Memory and CPU overhead per sandbox instance
+- **Hardware Requirements**: Dependencies on specific hardware or virtualization features
+- **Compatibility**: How closely the sandbox environment matches a full operating system
+- **Primary Use Cases**: Most common scenarios where each technology excels
+
 ### **2.1. Micro-Virtual Machines (MicroVMs): Hardware-Level Isolation**
 
 MicroVMs provide the strongest security isolation. They use hardware virtualization to give each sandbox its own kernel, memory space, and virtual devices. This creates a hardware-enforced boundary between guest code and the host operating system, avoiding the shared kernel vulnerabilities of containers. The key innovation is dramatically faster boot times, making VMs practical for short-lived workloads.
@@ -75,6 +97,15 @@ Developed and used extensively by Google, [gVisor](https://gvisor.dev/) is an op
 * **Advantages:** gVisor provides significantly stronger isolation than standard containers and has the major advantage of not requiring hardware virtualization support, meaning it can run on any Linux host, whether bare-metal or a VM. It is used in production to secure Google services like Cloud Run, App Engine, and Cloud Functions. It also offers advanced features like the ability to checkpoint and restore a running container's state.  
 * **Disadvantages:** This interception layer can introduce performance overhead compared to running directly on the host kernel. Furthermore, because gVisor re-implements the Linux API, there can be compatibility issues if an application uses obscure or newly introduced syscalls that gVisor does not yet support.
 
+#### **In-Depth Analysis: nsjail**
+
+[nsjail](https://github.com/google/nsjail) is a process isolation tool that leverages Linux namespaces and seccomp-bpf filters to create secure sandboxed environments. Originally developed by Google and used in production environments, it provides a lightweight alternative to full virtualization when strong isolation is needed.
+
+* **Mechanism:** nsjail creates isolated environments by combining multiple Linux security features: namespaces (PID, mount, network, user), seccomp-bpf system call filtering, and resource limits via cgroups. Unlike gVisor's approach of reimplementing syscalls, nsjail uses kernel-level filtering and namespace isolation to restrict what the sandboxed process can access.
+* **Advantages:** Extremely lightweight with minimal overhead compared to VMs or application kernels. Provides fine-grained control over system resources, file access, and network capabilities. Well-suited for scenarios where you need to run potentially untrusted code with specific resource constraints. Used successfully in production by platforms like [Windmill](https://windmill.dev) for sandboxing Python and TypeScript execution.
+* **Use Cases:** Particularly effective for long-running processes that need computational isolation without the overhead of full virtualization. According to community discussions, it's recommended for scenarios involving WebSocket data processing and light computational tasks where container-level isolation might be insufficient but VM overhead is undesirable.
+* **Configuration:** Supports extensive configuration options for runtime restrictions, including CPU limits, memory constraints, filesystem access controls, and network isolation policies. Can be integrated into worker processes via languages like Rust for programmatic control.
+
 ### **2.3. Language Runtimes: Lightweight, High-Speed Isolation**
 
 This is the most lightweight form of sandboxing, where isolation is enforced by the language runtime itself rather than the operating system or hardware. This approach offers the fastest startup times and lowest resource overhead but is the most restrictive in terms of compatibility.
@@ -92,6 +123,7 @@ V8 Isolates are a core feature of Google's V8 JavaScript engine. An Isolate repr
 
 * **Mechanism:** When multiple scripts run in different V8 Isolates within the same process (e.g., multiple tabs in a web browser), their objects, variables, and code are completely separate. One isolate cannot directly access the memory or state of another. This is the fundamental technology that enables platforms like  
   **Cloudflare Workers** and [**Deno Deploy**](https://deno.com/blog/anatomy-isolate-cloud) to securely run code from thousands of different customers on the same physical servers with extremely low overhead.  
+* **Language-Specific Limitations:** While V8 Isolates excel at JavaScript execution, they are not well-suited for Python workloads. The V8 engine is specifically designed and optimized for JavaScript's execution model, memory management, and runtime characteristics. Python applications require different runtime environments and cannot benefit from V8's isolation technology. For Python sandboxing, alternative approaches like nsjail, gVisor, or microVMs are more appropriate choices.
 * **The V8 Sandbox:** It is important to distinguish V8 Isolates from the newer [V8 Sandbox](https://chromium.googlesource.com/v8/v8.git/+/refs/heads/main/src/sandbox/README.md). The V8 Sandbox is a further defense-in-depth measure that operates *within* an isolate. It reserves a large region of virtual address space and ensures that all V8 heap pointers are confined to that space. This is designed to mitigate the impact of potential vulnerabilities *within the V8 engine itself*, preventing an exploit from achieving arbitrary memory read/write capabilities outside the sandboxed region. This demonstrates a multi-layered approach to security, even within the runtime.
 
 ## **3\. Feature Matrix: At-a-Glance Comparison**
