@@ -30,7 +30,8 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.6. Cloudflare Workers: Edge Computing with V8 Isolates](#46-cloudflare-workers-edge-computing-with-v8-isolates)
   - [4.7. Fly.io: Modern Application Hosting with MicroVMs](#47-flyio-modern-application-hosting-with-microvms)
   - [4.8. Kata Containers: Secure Container Runtime](#48-kata-containers-secure-container-runtime)
-  - [4.9. Other Notable Platforms & Cloud Development Environments (CDEs)](#49-other-notable-platforms--cloud-development-environments-cdes)
+  - [4.9. YepCode: Enterprise Automation with AI Code Execution](#49-yepcode-enterprise-automation-with-ai-code-execution)
+  - [4.10. Other Notable Platforms & Cloud Development Environments (CDEs)](#410-other-notable-platforms--cloud-development-environments-cdes)
 - [6. Docker vs MicroVM for Sandboxing](#6-docker-vs-microvm-for-sandboxing)
 - [7. Choosing Your Sandbox: A Decision Framework](#7-choosing-your-sandbox-a-decision-framework)
   - [Axis 1: Security vs. Performance vs. Compatibility](#axis-1-security-vs-performance-vs-compatibility)
@@ -93,6 +94,7 @@ Developed and open-sourced by Amazon Web Services (AWS), [Firecracker](https://f
 * **Adoption:** This technology is the foundation for many major platforms:
   - [**e2b** ↓](#41-e2b-the-ai-agent-sandbox-runtime) - leverages Firecracker for secure, fast-starting sandboxes for AI agents
   - [**Fly.io** ↓](#47-flyio-modern-application-hosting-with-microvms) - uses Firecracker microVMs for modern application hosting
+  - [**YepCode** ↓](#49-yepcode-enterprise-automation-with-ai-code-execution) - uses Firecracker microVMs for enterprise-grade code execution and automation
   - **AWS Lambda** - Amazon's serverless computing service runs on Firecracker
   - **AWS Fargate** - Amazon's container hosting service uses Firecracker for isolation
 
@@ -211,8 +213,8 @@ Containerization represents the most widely adopted approach to application isol
 * **Adoption:** This technology is ubiquitous across the industry:
   - [**Daytona** ↓](#42-daytona-secure--elastic-infrastructure-for-ai-code) - uses containers for development environments
   - [**Replit** ↓](#45-replit-collaborative-browser-based-development) - uses containers for coding environments
-  - [**Gitpod** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development workspaces
-  - [**Coder** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development environments
+  - [**Gitpod** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development workspaces
+  - [**Coder** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development environments
   - **Kubernetes** - the foundation of modern container orchestration
   - **Docker Hub** - the largest container registry with billions of downloads
 
@@ -230,9 +232,10 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Cloudflare Workers** ↓](#46-cloudflare-workers-edge-computing-with-v8-isolates) | V8 Isolates | 2017 | N/A | Proprietary | No | Yes | Ephemeral | Edge-limited | Short-Running |
 | [**Fly.io** ↓](#47-flyio-modern-application-hosting-with-microvms) | MicroVMs (Firecracker) | 2017 | N/A | Proprietary | No | Yes | Persistent | Full | Short & Long-Running |
 | [**Kata Containers** ↓](#48-kata-containers-secure-container-runtime) | MicroVM Containers | 2017 | 5.2k+ | Apache-2.0 | Yes | No | Persistent | Full | Long-Running & Stateful |
-| [**CodeSandbox** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | MicroVM & Browser | 2017 | 13.4k+ | Proprietary / OSS Parts | No | Yes | Persistent | Full | Short & Long-Running |
-| [**Gitpod** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | Containers | 2020 | 12.9k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
-| [**Coder** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | Containers / VMs | 2019 | 8.1k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
+| [**YepCode** ↓](#49-yepcode-enterprise-automation-with-ai-code-execution) | Firecracker (MicroVM) | 2021 | N/A | Proprietary | Yes | Yes | Persistent | Full | Short & Long-Running |
+| [**CodeSandbox** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) | MicroVM & Browser | 2017 | 13.4k+ | Proprietary / OSS Parts | No | Yes | Persistent | Full | Short & Long-Running |
+| [**Gitpod** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) | Containers | 2020 | 12.9k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
+| [**Coder** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) | Containers / VMs | 2019 | 8.1k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -374,7 +377,30 @@ The choice of the AGPL-3.0 license for Daytona's core product is a significant s
   * **Workload Suitability:** Ideal for **long-running, stateful** workloads that require strong security isolation. Perfect for multi-tenant environments, untrusted code execution, and compliance-heavy workloads where container escape vulnerabilities are unacceptable.
 * **Unique Value Proposition:** Kata Containers solves the "container vs. VM" dilemma by providing both. Organizations get the operational benefits of containers (fast startup, density, orchestration) with the security guarantees of VMs (hardware isolation, dedicated kernel). This makes it particularly valuable for production environments running untrusted workloads or requiring regulatory compliance.
 
-### **4.9. Other Notable Platforms & Cloud Development Environments (CDEs)**
+### **4.9. YepCode: Enterprise Automation with AI Code Execution**
+
+* **Overview:** YepCode is an enterprise-ready integration and automation platform that provides secure, sandboxed code execution powered by Firecracker microVMs. Founded in 2021, it positions itself as "The Zapier for developers," offering full programming capabilities within a serverless environment. YepCode's defining feature is its automatic dependency detection and installation, eliminating the complexity of manual dependency management that plagues other platforms. It excels at short-lived executions, enterprise automation, and AI-generated code execution with comprehensive process management and audit capabilities.
+* **GitHub:** [yepcode](https://github.com/yepcode)
+* **Website:** [yepcode.io](https://yepcode.io), [YepCode Run](https://yepcode.io/run)
+* **Launch Date:** **2021** - Founded with the mission to enable developers to automate tasks through source code rather than drag-and-drop interfaces.
+* **GitHub Stars:** N/A (proprietary platform with some open-source components)
+* **License:** **Proprietary** with freemium pricing model and enterprise options.
+* **Hosting:**
+  * **SaaS:** Yes. The primary offering is YepCode Cloud with a usage-based pricing model called "Yeps" (executions), ranging from a free developer plan to enterprise solutions.
+  * **Self-Hosted:** Yes. YepCode offers on-premise deployment options available on Growth and Enterprise plans, including executors on-premise and full-stack on-premise deployments.
+* **Capabilities:**
+  * **Filesystem Access:** **Persistent** - YepCode provides a robust storage system that handles file operations within processes. Users can upload, download, and manage files through both the platform interface and programmatic access via the `yepcode.storage` helper. File persistence is maintained across process executions.
+  * **Network Access:** **Full** - Sandboxes have complete network access with the ability to connect to any external service. YepCode also provides a tunneling system for accessing private infrastructure behind firewalls, making it suitable for enterprise environments with strict network policies.
+  * **Workload Suitability:** YepCode is **optimized for short-lived executions** and serverless automation scenarios. While it supports longer processes, it excels at quick data transformations, API integrations, and ephemeral tasks. The platform supports processes written in JavaScript (Node.js v22) and Python (v3.13).
+* **Key Advantages:**
+  * **Automatic Dependency Management:** YepCode's standout feature is its ability to automatically detect and install any NPM or PyPI dependency that code includes, eliminating the need for manual dependency configuration.
+  * **Process Management & Versioning:** Full process lifecycle management with source code versioning, execution tracking, and comprehensive audit trails for every change.
+  * **Flexible Execution Triggers:** Processes can be started manually, via scheduling system, through webhooks, or programmatically via API.
+  * **Enterprise Audit & Compliance:** Complete audit module tracking all modifications, executions, and system changes for regulatory compliance.
+  * **MCP Integration:** Offers an MCP (Model Context Protocol) server that allows both using the run_code tool for dynamic execution and exposing any pre-created process as MCP tools for AI agents.
+* **Unique Value Proposition:** YepCode combines the ease of a SaaS platform with enterprise-grade security and the full power of programming languages. Its automatic dependency detection sets it apart from other platforms, while its comprehensive process management, audit capabilities, and MCP integration make it particularly valuable for AI agents and enterprise automation workflows that require both dynamic code execution and established process orchestration.
+
+### **4.10. Other Notable Platforms & Cloud Development Environments (CDEs)**
 
 While the platforms above are specialized sandboxing runtimes, the broader category of Cloud Development Environments (CDEs) also relies heavily on sandboxing technology to function. They provide a useful point of comparison.
 
@@ -475,11 +501,11 @@ Choosing the right sandboxing solution depends on your specific requirements. Co
 
 This is the most important trade-off. Your choice depends on your threat model.
 
-* **For Maximum Security:** If your application runs highly untrusted or potentially malicious code from the public internet, and you need the strongest possible isolation, choose a **microVM-based solution**. The hardware-enforced boundary from a dedicated guest kernel provides the best defense against container escape vulnerabilities.  
-  * **Recommended:** **microsandbox**, **e2b**, **Daytona**.  
-* **For Balanced Security and Compatibility:** If you need stronger isolation than standard containers but can't use hardware virtualization, an application kernel is a good choice. It reduces the attack surface without requiring hardware virtualization.  
-  * **Recommended:** **gVisor**.  
-* **For Maximum Performance and Speed:** If your workload is well-defined, you have some trust in the code, and startup time and resource overhead are most critical (e.g., high-volume, short-lived edge functions), a language-runtime-based sandbox is most efficient.  
+* **For Maximum Security:** If your application runs highly untrusted or potentially malicious code from the public internet, and you need the strongest possible isolation, choose a **microVM-based solution**. The hardware-enforced boundary from a dedicated guest kernel provides the best defense against container escape vulnerabilities.
+  * **Recommended:** **microsandbox**, **e2b**, **YepCode**.
+* **For Balanced Security and Compatibility:** If you need stronger isolation than standard containers but can't use hardware virtualization, an application kernel is a good choice. It reduces the attack surface without requiring hardware virtualization.
+  * **Recommended:** **gVisor**.
+* **For Maximum Performance and Speed:** If your workload is well-defined, you have some trust in the code, and startup time and resource overhead are most critical (e.g., high-volume, short-lived edge functions), a language-runtime-based sandbox is most efficient.
   * **Recommended:** A platform built on **WebAssembly (WASM)** or **V8 Isolates**.
 
 ### **Axis 2: Stateless Functions vs. Stateful Workloads**
@@ -496,20 +522,20 @@ The nature of your workload - whether it's a one-off task or a long-running proc
 
 Your organization's operational model and compliance requirements will determine your hosting strategy.
 
-* **For a Managed Service (SaaS):** If you want to accelerate development and offload the operational burden of managing sandboxing infrastructure, a SaaS platform is the best choice. These platforms offer usage-based pricing and handle all the scaling, maintenance, and security of the underlying infrastructure.  
-  * **Recommended:** **e2b** and **Daytona** provide mature, feature-rich SaaS offerings.  
-* **For Full Control (Self-Hosted):** If you have strict data sovereignty, regulatory compliance (e.g., GDPR), or security policies that mandate running all infrastructure within your own network perimeter, a self-hosted solution is necessary.  
-  * **Recommended:** **microsandbox** is self-hosted by design and is the most straightforward choice for this model.  
-    **Daytona**, **e2b**, **Gitpod**, and **Coder** also offer robust self-hosting options, typically as part of their enterprise offerings.
+* **For a Managed Service (SaaS):** If you want to accelerate development and offload the operational burden of managing sandboxing infrastructure, a SaaS platform is the best choice. These platforms offer usage-based pricing and handle all the scaling, maintenance, and security of the underlying infrastructure.
+  * **Recommended:** **e2b**, **Daytona**, and **YepCode** provide mature, feature-rich SaaS offerings.
+* **For Full Control (Self-Hosted):** If you have strict data sovereignty, regulatory compliance (e.g., GDPR), or security policies that mandate running all infrastructure within your own network perimeter, a self-hosted solution is necessary.
+  * **Recommended:** **microsandbox** is self-hosted by design and is the most straightforward choice for this model.
+    **Daytona**, **e2b**, **YepCode**, **Gitpod**, and **Coder** also offer robust self-hosting options, typically as part of their enterprise offerings.
 
 ### **Axis 4: AI/Agent-Specific vs. General-Purpose**
 
 Finally, consider whether you need a tool tailored for a specific domain or a more general-purpose platform.
 
-* **For AI-Centric Workflows:** If you are building AI agents, code interpreters, or other LLM-powered applications, choosing a platform that is explicitly optimized for this domain can provide significant advantages. Their SDKs and features are often designed to solve common problems in agentic development.  
-  * **Recommended:** **e2b** and **Daytona** are heavily focused on the AI and agent use case.  
-* **For General-Purpose Execution/Development:** If your needs are broader, such as providing general-purpose development environments or a secure runtime for a variety of applications, a more general platform may be a better fit.  
-  * **Recommended:** **microsandbox** is a powerful, general-purpose secure execution engine.  
+* **For AI-Centric Workflows:** If you are building AI agents, code interpreters, or other LLM-powered applications, choosing a platform that is explicitly optimized for this domain can provide significant advantages. Their SDKs and features are often designed to solve common problems in agentic development.
+  * **Recommended:** **e2b**, **YepCode**, and **Daytona** are heavily focused on the AI and agent use case.
+* **For General-Purpose Execution/Development:** If your needs are broader, such as providing general-purpose development environments or a secure runtime for a variety of applications, a more general platform may be a better fit.
+  * **Recommended:** **microsandbox** is a powerful, general-purpose secure execution engine.
     **Coder** and **Gitpod** are leading general-purpose Cloud Development Environments.
 
 ## **8\. Contributing**
