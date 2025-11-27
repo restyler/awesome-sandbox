@@ -143,7 +143,7 @@ Developed and used extensively by Google, [gVisor](https://gvisor.dev/) is an op
 * **Use Cases:** Particularly effective for long-running processes that need computational isolation without the overhead of full virtualization. According to community discussions, it's recommended for scenarios involving WebSocket data processing and light computational tasks where container-level isolation might be insufficient but VM overhead is undesirable.
 * **Configuration:** Supports extensive configuration options for runtime restrictions, including CPU limits, memory constraints, filesystem access controls, and network isolation policies. Can be integrated into worker processes via languages like Rust for programmatic control.
 * **Adoption:** This technology is used by:
-  - **Windmill** - uses nsjail for sandboxing Python and TypeScript execution
+  - **Windmill** - uses nsjail for sandboxing Python and Golang execution
   - **Google** - uses nsjail internally for various sandboxing needs
   - **Security research** - widely used in malware analysis and security research
   - **CTF platforms** - used by competitive programming and security challenge platforms
