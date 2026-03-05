@@ -31,6 +31,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.7. Fly.io: Modern Application Hosting with MicroVMs](#47-flyio-modern-application-hosting-with-microvms)
   - [4.8. Kata Containers: Secure Container Runtime](#48-kata-containers-secure-container-runtime)
   - [4.9. Other Notable Platforms & Cloud Development Environments (CDEs)](#49-other-notable-platforms--cloud-development-environments-cdes)
+  - [4.10. Akira: Hardware-Isolated MicroVM Sandboxes for AI Code](#410-akira-hardware-isolated-microvm-sandboxes-for-ai-code)
 - [6. Docker vs MicroVM for Sandboxing](#6-docker-vs-microvm-for-sandboxing)
 - [7. Choosing Your Sandbox: A Decision Framework](#7-choosing-your-sandbox-a-decision-framework)
   - [Axis 1: Security vs. Performance vs. Compatibility](#axis-1-security-vs-performance-vs-compatibility)
@@ -225,7 +226,8 @@ The following table provides a high-level, comparative overview of the leading c
 | [**e2b** ↓](#41-e2b-the-ai-agent-sandbox-runtime) | Firecracker (MicroVM) | Nov 2023 | 8.9k+ | Apache-2.0 | Yes | Yes | Persistent | Full | Short & Long-Running |
 | [**Daytona** ↓](#42-daytona-secure--elastic-infrastructure-for-ai-code) | Containers (OCI/Docker) | 2023 | 21k+ | AGPL-3.0 | Yes | Yes | Persistent, Archivable | Full | Long-Running & Stateful |
 | [**microsandbox** ↓](#43-microsandbox-self-hosted-microvms-for-untrusted-code) | libkrun (MicroVM) | May 2025 | 3.3k+ | Apache-2.0 | Yes (Primary) | No | Persistent & Ephemeral | Full | Short & Long-Running |
-| [**WebContainers** ↓](#44-webcontainers-browser-native-development-runtime) | Browser-based Node.js/Wasm | 2021 | N/A | Proprietary | No | Yes | Ephemeral | Browser-limited | Short & Medium-Running |
+| [**Akira** ↓](#44-akira-hardware-isolated-microvm-sandboxes-for-ai-code) | MicroVMs | 2025 | 0 | Apache-2.0 | Planned | Yes | Persistent | Full (with egress controls) | Short & Long-Running |
+| [**WebContainers** ↓](#45-webcontainers-browser-native-development-runtime) | Browser-based Node.js/Wasm | 2021 | N/A | Proprietary | No | Yes | Ephemeral | Browser-limited | Short & Medium-Running |
 | [**Replit** ↓](#45-replit-collaborative-browser-based-development) | Containers/VMs | 2016 | N/A | Proprietary | No | Yes | Persistent | Full | Short & Long-Running |
 | [**Cloudflare Workers** ↓](#46-cloudflare-workers-edge-computing-with-v8-isolates) | V8 Isolates | 2017 | N/A | Proprietary | No | Yes | Ephemeral | Edge-limited | Short-Running |
 | [**Fly.io** ↓](#47-flyio-modern-application-hosting-with-microvms) | MicroVMs (Firecracker) | 2017 | N/A | Proprietary | No | Yes | Persistent | Full | Short & Long-Running |
@@ -384,6 +386,24 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   .gitpod.yml or devcontainer.json.  
   * **Sandboxing Approach:** Their isolation is typically based on **containers** (e.g., Docker). However, their architectures are sophisticated. [Gitpod employs a zero-trust model](https://www.gitpod.io/docs/flex/introduction/zero-trust) with a central management plane and runners that deploy environments within a customer's own cloud infrastructure, ensuring source code never leaves the network perimeter. [Coder uses Terraform as its provisioning engine](https://coder.com/docs/admin/infrastructure/architecture), which provides immense flexibility. A Coder template can define a workspace as a Docker container, a Kubernetes pod, or even a full VM on a cloud provider, allowing administrators to choose the appropriate level of isolation for their needs. Both projects use the AGPL-3.0 license for their open-source editions and offer enterprise versions with commercial licenses.
 
+### **4.10. Akira: Hardware-Isolated MicroVM Sandboxes for AI Code**
+
+* **Overview:** Akira is a secure sandbox platform that runs untrusted AI-generated code inside hardware-isolated MicroVMs. Each sandbox gets its own kernel, filesystem, and resource limits. The platform provides zero-trust execution by default, full audit logging, and network egress controls. Akira targets AI coding agents, LLM-powered automation, agentic data pipelines, and vibe-coded interface deployment. A "FlexClone" mechanism enables cost-efficient sandbox provisioning, claiming up to 75% lower compute costs compared to full cloud VM instances.
+* **GitHub:** [Akira-Labs-01](https://github.com/Akira-Labs-01) — SDKs: [akira-typescript](https://github.com/Akira-Labs-01/akira-typescript), [akira-python](https://github.com/Akira-Labs-01/akira-python)
+* **Website:** [akiralabs.ai](https://akiralabs.ai)
+* **Docs:** [docs.akiralabs.ai](https://docs.akiralabs.ai)
+* **Launch Date:** 2025. The platform is live with a tiered pricing model (Starter, Medium, Growth, Enterprise).
+* **GitHub Stars:** The project's SDK repositories are newly published.
+* **License:** The SDKs are licensed under the permissive **Apache-2.0 License**. The platform itself is a managed SaaS offering.
+* **Hosting:**
+    + **SaaS:** Yes. Akira offers a fully managed cloud platform with tiered pricing: a free Starter plan (4 sandboxes per user), a Medium plan ($39.99/mo, 8 sandboxes), a Growth plan ($89.99/mo, 10 sandboxes), and custom Enterprise pricing with higher resource profiles and dedicated support.
+    + **Self-Hosted:** Planned. Self-hosted and bring-your-own-cloud (BYOC) deployment options are on the roadmap.
+* **Capabilities:**
+    + **Filesystem Access:** Persistent. Each sandbox maintains its own filesystem with full read/write capabilities. Snapshots and cloning are supported, allowing developers to checkpoint execution state and fork sandboxes for parallel experimentation.
+    + **Network Access:** Full network access with egress controls. The platform provides configurable network isolation, allowing administrators to restrict outbound access per sandbox. All execution activity is captured via built-in audit logging.
+    + **Workload Suitability:** Akira supports both **short-lived** and **long-running** workloads. Use cases include AI coding agents (Devin, Cursor-style workflows), LLM-powered automation interacting with databases and APIs, vibe-coded frontend component generation and testing, and agentic data pipelines that explore and transform data inside secure sandboxes.
+* **SDK:** TypeScript and Python SDKs are available under the Apache-2.0 license. The integration follows a three-step pattern: connect your AI agent or LLM workflow, execute code inside an isolated sandbox with audit logging, and promote validated code to production.
+
 ## **6\. Docker vs MicroVM for Sandboxing**
 
 When evaluating sandboxing solutions, one of the most fundamental architectural decisions is choosing between container-based isolation (Docker/OCI) and microVM-based isolation. This choice significantly impacts performance, security, and operational complexity.
@@ -476,7 +496,7 @@ Choosing the right sandboxing solution depends on your specific requirements. Co
 This is the most important trade-off. Your choice depends on your threat model.
 
 * **For Maximum Security:** If your application runs highly untrusted or potentially malicious code from the public internet, and you need the strongest possible isolation, choose a **microVM-based solution**. The hardware-enforced boundary from a dedicated guest kernel provides the best defense against container escape vulnerabilities.  
-  * **Recommended:** **microsandbox**, **e2b**, **Daytona**.  
+  * **Recommended:** **microsandbox**, **e2b**, **Akira**, **Daytona**.
 * **For Balanced Security and Compatibility:** If you need stronger isolation than standard containers but can't use hardware virtualization, an application kernel is a good choice. It reduces the attack surface without requiring hardware virtualization.  
   * **Recommended:** **gVisor**.  
 * **For Maximum Performance and Speed:** If your workload is well-defined, you have some trust in the code, and startup time and resource overhead are most critical (e.g., high-volume, short-lived edge functions), a language-runtime-based sandbox is most efficient.  
@@ -508,7 +528,7 @@ Your organization's operational model and compliance requirements will determine
 Finally, consider whether you need a tool tailored for a specific domain or a more general-purpose platform.
 
 * **For AI-Centric Workflows:** If you are building AI agents, code interpreters, or other LLM-powered applications, choosing a platform that is explicitly optimized for this domain can provide significant advantages. Their SDKs and features are often designed to solve common problems in agentic development.  
-  * **Recommended:** **e2b** and **Daytona** are heavily focused on the AI and agent use case.  
+  * **Recommended:** **e2b**, **Akira**, and **Daytona** are heavily focused on the AI and agent use case.
 * **For General-Purpose Execution/Development:** If your needs are broader, such as providing general-purpose development environments or a secure runtime for a variety of applications, a more general platform may be a better fit.  
   * **Recommended:** **microsandbox** is a powerful, general-purpose secure execution engine.  
     **Coder** and **Gitpod** are leading general-purpose Cloud Development Environments.
