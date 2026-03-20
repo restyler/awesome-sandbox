@@ -1,5 +1,6 @@
 
 
+
 # **A Curated Guide to Code Sandboxing Solutions**
 
 This document provides a comprehensive, curated list and analysis of modern code sandboxing solutions. It is designed to help developers, architects, and engineering leaders navigate the complex landscape of secure code execution, from foundational technologies to full-fledged platforms.
@@ -31,6 +32,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.7. Fly.io: Modern Application Hosting with MicroVMs](#47-flyio-modern-application-hosting-with-microvms)
   - [4.8. Kata Containers: Secure Container Runtime](#48-kata-containers-secure-container-runtime)
   - [4.9. Other Notable Platforms & Cloud Development Environments (CDEs)](#49-other-notable-platforms--cloud-development-environments-cdes)
+  - [4.10. brood-box: Hardware-Isolated MicroVMs for AI Coding Agents](#410-brood-box-hardware-isolated-microvms-for-ai-coding-agents)
 - [6. Docker vs MicroVM for Sandboxing](#6-docker-vs-microvm-for-sandboxing)
 - [7. Choosing Your Sandbox: A Decision Framework](#7-choosing-your-sandbox-a-decision-framework)
   - [Axis 1: Security vs. Performance vs. Compatibility](#axis-1-security-vs-performance-vs-compatibility)
@@ -107,6 +109,7 @@ Similar to Firecracker, libkrun is a library-based virtualization solution desig
   - [**microsandbox** ↓](#43-microsandbox-self-hosted-microvms-for-untrusted-code) - uses libkrun as its core virtualization technology for self-hosted sandboxing
   - **Podman** - Red Hat's rootless container engine can use libkrun for VM-level isolation while maintaining container compatibility
   - **crun** - OCI runtime that can use libkrun for enhanced security
+  - **brood-box** - CLI for running AI coding agents inside libkrun-based microVMs ([brood-box](https://github.com/stacklok/brood-box))
 
 The emergence of microVM technologies like Firecracker and libkrun has rendered the old dichotomy of "slow, secure VMs versus fast, insecure containers" largely obsolete. They offer a compelling "best of both worlds" approach that has become the new standard for high-security, ephemeral code execution.
 
@@ -384,6 +387,23 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   .gitpod.yml or devcontainer.json.  
   * **Sandboxing Approach:** Their isolation is typically based on **containers** (e.g., Docker). However, their architectures are sophisticated. [Gitpod employs a zero-trust model](https://www.gitpod.io/docs/flex/introduction/zero-trust) with a central management plane and runners that deploy environments within a customer's own cloud infrastructure, ensuring source code never leaves the network perimeter. [Coder uses Terraform as its provisioning engine](https://coder.com/docs/admin/infrastructure/architecture), which provides immense flexibility. A Coder template can define a workspace as a Docker container, a Kubernetes pod, or even a full VM on a cloud provider, allowing administrators to choose the appropriate level of isolation for their needs. Both projects use the AGPL-3.0 license for their open-source editions and offer enterprise versions with commercial licenses.
 
+### **4.10. brood-box: Hardware-Isolated MicroVMs for AI Coding Agents**
+
+* **Overview:** brood-box is a CLI tool that runs AI coding agents (Claude Code, Codex, OpenCode) inside hardware-isolated microVMs powered by libkrun. It combines KVM-level isolation with COW snapshot isolation, DNS-aware egress control, and Cedar-based MCP authorization profiles. The focus is on local, self-hosted security for developers running coding agents on their own machines.
+* **GitHub:** [stacklok/brood-box](https://github.com/stacklok/brood-box)
+* **Launch Date:** February 2026.
+* **GitHub Stars:** ~11 stars (early-stage project).
+* **License:** **Apache-2.0**.
+* **Hosting:**
+  * **SaaS:** No. brood-box is exclusively a local CLI tool.
+  * **Self-Hosted:** Yes. This is the only deployment model. Users install the `bbox` binary and run agents locally.
+* **Capabilities:**
+  * **Filesystem Access:** COW snapshot isolation is always active. A copy-on-write snapshot of the workspace is created before the VM starts. After the agent finishes, changes are diffed and can be reviewed interactively (`--review`) before flushing back to the real workspace. Security-sensitive files (`.env`, `.ssh/`, `*.pem`) are excluded by non-overridable patterns.
+  * **Network Access:** DNS-aware egress policies restrict what the agent can reach. Profiles range from full access to tightly scoped allowlists. Workspace-local config can only tighten egress, never loosen it.
+  * **MCP Authorization:** Cedar-based authorization profiles (`full-access`, `observe`, `safe-tools`, `custom`) control what MCP operations the agent can perform via a built-in proxy.
+  * **Workload Suitability:** Designed for **interactive, session-based** coding agent workflows. The developer launches a session, the agent works inside the microVM, and changes are reviewed and accepted at the end.
+* **Underlying Technology:** Uses [go-microvm](https://github.com/stacklok/go-microvm), a Go framework for running OCI images as microVMs via **libkrun** (KVM). Pure Go CLI with no CGO dependency at build time (the go-microvm runtime is pre-built and embedded).
+
 ## **6\. Docker vs MicroVM for Sandboxing**
 
 When evaluating sandboxing solutions, one of the most fundamental architectural decisions is choosing between container-based isolation (Docker/OCI) and microVM-based isolation. This choice significantly impacts performance, security, and operational complexity.
@@ -476,7 +496,7 @@ Choosing the right sandboxing solution depends on your specific requirements. Co
 This is the most important trade-off. Your choice depends on your threat model.
 
 * **For Maximum Security:** If your application runs highly untrusted or potentially malicious code from the public internet, and you need the strongest possible isolation, choose a **microVM-based solution**. The hardware-enforced boundary from a dedicated guest kernel provides the best defense against container escape vulnerabilities.  
-  * **Recommended:** **microsandbox**, **e2b**, **Daytona**.  
+  * **Recommended:** **microsandbox**, **e2b**, **Daytona**, **brood-box**.  
 * **For Balanced Security and Compatibility:** If you need stronger isolation than standard containers but can't use hardware virtualization, an application kernel is a good choice. It reduces the attack surface without requiring hardware virtualization.  
   * **Recommended:** **gVisor**.  
 * **For Maximum Performance and Speed:** If your workload is well-defined, you have some trust in the code, and startup time and resource overhead are most critical (e.g., high-volume, short-lived edge functions), a language-runtime-based sandbox is most efficient.  
@@ -508,7 +528,7 @@ Your organization's operational model and compliance requirements will determine
 Finally, consider whether you need a tool tailored for a specific domain or a more general-purpose platform.
 
 * **For AI-Centric Workflows:** If you are building AI agents, code interpreters, or other LLM-powered applications, choosing a platform that is explicitly optimized for this domain can provide significant advantages. Their SDKs and features are often designed to solve common problems in agentic development.  
-  * **Recommended:** **e2b** and **Daytona** are heavily focused on the AI and agent use case.  
+  * **Recommended:** **e2b**, **Daytona**, and **brood-box** are heavily focused on the AI and agent use case.  
 * **For General-Purpose Execution/Development:** If your needs are broader, such as providing general-purpose development environments or a secure runtime for a variety of applications, a more general platform may be a better fit.  
   * **Recommended:** **microsandbox** is a powerful, general-purpose secure execution engine.  
     **Coder** and **Gitpod** are leading general-purpose Cloud Development Environments.
