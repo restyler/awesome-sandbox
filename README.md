@@ -25,12 +25,13 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.1. e2b: The AI Agent Sandbox Runtime](#41-e2b-the-ai-agent-sandbox-runtime)
   - [4.2. Daytona: Secure & Elastic Infrastructure for AI Code](#42-daytona-secure--elastic-infrastructure-for-ai-code)
   - [4.3. microsandbox: Self-Hosted MicroVMs for Untrusted Code](#43-microsandbox-self-hosted-microvms-for-untrusted-code)
-  - [4.4. WebContainers: Browser-Native Development Runtime](#44-webcontainers-browser-native-development-runtime)
-  - [4.5. Replit: Collaborative Browser-Based Development](#45-replit-collaborative-browser-based-development)
-  - [4.6. Cloudflare Workers: Edge Computing with V8 Isolates](#46-cloudflare-workers-edge-computing-with-v8-isolates)
-  - [4.7. Fly.io: Modern Application Hosting with MicroVMs](#47-flyio-modern-application-hosting-with-microvms)
-  - [4.8. Kata Containers: Secure Container Runtime](#48-kata-containers-secure-container-runtime)
-  - [4.9. Other Notable Platforms & Cloud Development Environments (CDEs)](#49-other-notable-platforms--cloud-development-environments-cdes)
+  - [4.4. Den: Self-Hosted Sandbox Runtime for AI Agents](#44-den-self-hosted-sandbox-runtime-for-ai-agents)
+  - [4.5. WebContainers: Browser-Native Development Runtime](#45-webcontainers-browser-native-development-runtime)
+  - [4.6. Replit: Collaborative Browser-Based Development](#46-replit-collaborative-browser-based-development)
+  - [4.7. Cloudflare Workers: Edge Computing with V8 Isolates](#47-cloudflare-workers-edge-computing-with-v8-isolates)
+  - [4.8. Fly.io: Modern Application Hosting with MicroVMs](#48-flyio-modern-application-hosting-with-microvms)
+  - [4.9. Kata Containers: Secure Container Runtime](#49-kata-containers-secure-container-runtime)
+  - [4.10. Other Notable Platforms & Cloud Development Environments (CDEs)](#410-other-notable-platforms--cloud-development-environments-cdes)
 - [6. Docker vs MicroVM for Sandboxing](#6-docker-vs-microvm-for-sandboxing)
 - [7. Choosing Your Sandbox: A Decision Framework](#7-choosing-your-sandbox-a-decision-framework)
   - [Axis 1: Security vs. Performance vs. Compatibility](#axis-1-security-vs-performance-vs-compatibility)
@@ -209,10 +210,11 @@ Containerization represents the most widely adopted approach to application isol
 * **Use Cases:** Ideal for trusted application deployment, development environments, CI/CD pipelines, and microservices architectures. Less suitable for running untrusted code from external sources or scenarios requiring the strongest security isolation.
 * **Enhanced Security Options:** Technologies like gVisor provide additional security layers for containers, while Kata Containers offer VM-level isolation with container compatibility.
 * **Adoption:** This technology is ubiquitous across the industry:
+  - [**Den** ↓](#44-den-self-hosted-sandbox-runtime-for-ai-agents) - uses Docker containers for AI agent sandboxes with snapshot/restore
   - [**Daytona** ↓](#42-daytona-secure--elastic-infrastructure-for-ai-code) - uses containers for development environments
-  - [**Replit** ↓](#45-replit-collaborative-browser-based-development) - uses containers for coding environments
-  - [**Gitpod** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development workspaces
-  - [**Coder** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development environments
+  - [**Replit** ↓](#46-replit-collaborative-browser-based-development) - uses containers for coding environments
+  - [**Gitpod** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development workspaces
+  - [**Coder** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development environments
   - **Kubernetes** - the foundation of modern container orchestration
   - **Docker Hub** - the largest container registry with billions of downloads
 
@@ -225,14 +227,15 @@ The following table provides a high-level, comparative overview of the leading c
 | [**e2b** ↓](#41-e2b-the-ai-agent-sandbox-runtime) | Firecracker (MicroVM) | Nov 2023 | 8.9k+ | Apache-2.0 | Yes | Yes | Persistent | Full | Short & Long-Running |
 | [**Daytona** ↓](#42-daytona-secure--elastic-infrastructure-for-ai-code) | Containers (OCI/Docker) | 2023 | 21k+ | AGPL-3.0 | Yes | Yes | Persistent, Archivable | Full | Long-Running & Stateful |
 | [**microsandbox** ↓](#43-microsandbox-self-hosted-microvms-for-untrusted-code) | libkrun (MicroVM) | May 2025 | 3.3k+ | Apache-2.0 | Yes (Primary) | No | Persistent & Ephemeral | Full | Short & Long-Running |
-| [**WebContainers** ↓](#44-webcontainers-browser-native-development-runtime) | Browser-based Node.js/Wasm | 2021 | N/A | Proprietary | No | Yes | Ephemeral | Browser-limited | Short & Medium-Running |
-| [**Replit** ↓](#45-replit-collaborative-browser-based-development) | Containers/VMs | 2016 | N/A | Proprietary | No | Yes | Persistent | Full | Short & Long-Running |
-| [**Cloudflare Workers** ↓](#46-cloudflare-workers-edge-computing-with-v8-isolates) | V8 Isolates | 2017 | N/A | Proprietary | No | Yes | Ephemeral | Edge-limited | Short-Running |
-| [**Fly.io** ↓](#47-flyio-modern-application-hosting-with-microvms) | MicroVMs (Firecracker) | 2017 | N/A | Proprietary | No | Yes | Persistent | Full | Short & Long-Running |
-| [**Kata Containers** ↓](#48-kata-containers-secure-container-runtime) | MicroVM Containers | 2017 | 5.2k+ | Apache-2.0 | Yes | No | Persistent | Full | Long-Running & Stateful |
-| [**CodeSandbox** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | MicroVM & Browser | 2017 | 13.4k+ | Proprietary / OSS Parts | No | Yes | Persistent | Full | Short & Long-Running |
-| [**Gitpod** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | Containers | 2020 | 12.9k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
-| [**Coder** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | Containers / VMs | 2019 | 8.1k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
+| [**Den** ↓](#44-den-self-hosted-sandbox-runtime-for-ai-agents) | Docker Containers | 2025 | New | AGPL-3.0 | Yes (Primary) | No | Persistent (Snapshot/Restore) | Full | Short & Long-Running |
+| [**WebContainers** ↓](#45-webcontainers-browser-native-development-runtime) | Browser-based Node.js/Wasm | 2021 | N/A | Proprietary | No | Yes | Ephemeral | Browser-limited | Short & Medium-Running |
+| [**Replit** ↓](#46-replit-collaborative-browser-based-development) | Containers/VMs | 2016 | N/A | Proprietary | No | Yes | Persistent | Full | Short & Long-Running |
+| [**Cloudflare Workers** ↓](#47-cloudflare-workers-edge-computing-with-v8-isolates) | V8 Isolates | 2017 | N/A | Proprietary | No | Yes | Ephemeral | Edge-limited | Short-Running |
+| [**Fly.io** ↓](#48-flyio-modern-application-hosting-with-microvms) | MicroVMs (Firecracker) | 2017 | N/A | Proprietary | No | Yes | Persistent | Full | Short & Long-Running |
+| [**Kata Containers** ↓](#49-kata-containers-secure-container-runtime) | MicroVM Containers | 2017 | 5.2k+ | Apache-2.0 | Yes | No | Persistent | Full | Long-Running & Stateful |
+| [**CodeSandbox** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) | MicroVM & Browser | 2017 | 13.4k+ | Proprietary / OSS Parts | No | Yes | Persistent | Full | Short & Long-Running |
+| [**Gitpod** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) | Containers | 2020 | 12.9k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
+| [**Coder** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) | Containers / VMs | 2019 | 8.1k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -289,7 +292,24 @@ The choice of the AGPL-3.0 license for Daytona's core product is a significant s
   * **Network Access:** The microsandbox core server is responsible for managing networking for the sandboxes. While detailed network configuration guides are not present in the primary documentation snippets, use cases such as "Web Browsing Agent" and "Instant App Hosting" strongly imply that sandboxes can be configured with controlled network access to fulfill these roles.  
   * **Workload Suitability:** microsandbox is highly flexible, catering to both **short-lived, stateless** tasks and **long-running, stateful** workloads. The msx command is designed for quick, ephemeral executions, while the project-based msr command with its persistent state is ideal for ongoing development work or complex, multi-step processes where context must be maintained.
 
-### **4.4. WebContainers: Browser-Native Development Runtime**
+### **4.4. Den: Self-Hosted Sandbox Runtime for AI Agents**
+
+* **Overview:** Den is a self-hosted sandbox runtime purpose-built for AI agents. Positioned as an open-source alternative to e2b, it provides isolated Docker container environments with a REST API, WebSocket streaming, and an MCP server for direct LLM integration. Den focuses on giving AI agents full-featured execution environments with snapshot/restore capabilities and dynamic memory management, all under your own infrastructure.
+* **GitHub:** [us/den](https://github.com/us/den)
+* **Website:** [github.com/us/den](https://github.com/us/den)
+* **Launch Date:** 2025.
+* **License:** **AGPL-3.0** — strong copyleft license requiring network-distributed modifications to be open-sourced. Similar licensing strategy to Daytona and Gitpod.
+* **Hosting:**
+  * **SaaS:** No. Den is exclusively a **self-hosted** solution, giving users full control over their infrastructure and data.
+  * **Self-Hosted:** Yes, this is the only deployment model. Users run the Den server on their own hardware or cloud instances.
+* **Capabilities:**
+  * **Filesystem Access:** **Persistent** with snapshot/restore — Den supports full filesystem access within Docker containers. A key differentiator is its snapshot/restore functionality, which allows capturing and restoring complete container state, enabling efficient environment reuse and branching workflows for AI agents.
+  * **Network Access:** **Full** — Sandboxes have complete network access. The platform exposes services via a REST API and WebSocket connections for real-time command execution and streaming output.
+  * **Workload Suitability:** Den supports both **short-lived** and **long-running** workloads. Dynamic memory management allows efficient resource allocation across sandbox pools. The snapshot/restore feature makes it particularly effective for iterative AI agent workflows where environment state needs to be preserved, forked, or rolled back.
+* **SDKs & Integration:** Den provides official SDKs for **Go**, **TypeScript**, and **Python**, plus an MCP (Model Context Protocol) server for native integration with LLM frameworks. This multi-language SDK approach and MCP support make it straightforward to integrate into diverse AI agent architectures.
+* **Underlying Technology:** Den uses **Docker containers** for isolation, prioritizing compatibility and operational simplicity over microVM-level security. This makes it easy to deploy on any infrastructure that supports Docker, without requiring hardware virtualization support.
+
+### **4.5. WebContainers: Browser-Native Development Runtime**
 
 * **Overview:** [WebContainers](https://webcontainers.io) represents a fundamentally different approach to code sandboxing by bringing server-side development entirely into the browser. Developed by StackBlitz, this technology creates a browser-based Node.js runtime using WebAssembly that can run package managers, development servers, and full-stack frameworks without any remote infrastructure.
 * **GitHub:** N/A (proprietary)
@@ -306,7 +326,7 @@ The choice of the AGPL-3.0 license for Daytona's core product is a significant s
   * **Workload Suitability:** Ideal for **short to medium-running** development tasks, prototyping, tutorials, and educational environments. Performance claims of up to 10x faster package installation than local development make it suitable for rapid iteration workflows.  
 * **Unique Value Proposition:** WebContainers eliminates server infrastructure costs entirely while providing instant, disposable development environments. This makes it particularly valuable for interactive tutorials, low-code platforms, and AI development environments where traditional server-based sandboxes would be cost-prohibitive at scale.
 
-### **4.5. Replit: Collaborative Browser-Based Development**
+### **4.6. Replit: Collaborative Browser-Based Development**
 
 * **Overview:** [Replit](https://replit.com) is a browser-based development platform that emphasizes collaboration, education, and rapid prototyping. Founded in 2016, it has become one of the most popular platforms for learning to code and building quick prototypes. The platform provides instant development environments without any local setup, supporting dozens of programming languages and frameworks.
 * **GitHub:** [replit](https://github.com/replit)
@@ -323,7 +343,7 @@ The choice of the AGPL-3.0 license for Daytona's core product is a significant s
   * **Workload Suitability:** Ideal for **short to long-running** development tasks, particularly educational projects, collaborative coding, and rapid prototyping. The platform excels at quick iterations and sharing code with others.  
 * **Unique Features:** Real-time collaboration, integrated AI coding assistance, one-click deployment, and strong community features make it particularly popular for education and team development.
 
-### **4.6. Cloudflare Workers: Edge Computing with V8 Isolates**
+### **4.7. Cloudflare Workers: Edge Computing with V8 Isolates**
 
 * **Overview:** [Cloudflare Workers](https://workers.cloudflare.com) represents the edge computing paradigm, running code across Cloudflare's global network of 275+ data centers. Launched in 2017, it uses V8 Isolates to provide extremely fast cold starts and global distribution, making it ideal for serverless functions that need to run close to users worldwide.
 * **GitHub:** N/A (proprietary)
@@ -340,7 +360,7 @@ The choice of the AGPL-3.0 license for Daytona's core product is a significant s
   * **Workload Suitability:** Exclusively for **short-running** tasks (10ms-30s execution time). Perfect for API endpoints, edge logic, and request transformation.  
 * **Performance:** Exceptional performance with 0ms cold starts and sub-100ms global latency. Claims to be up to 10x less expensive than traditional serverless platforms.
 
-### **4.7. Fly.io: Modern Application Hosting with MicroVMs**
+### **4.8. Fly.io: Modern Application Hosting with MicroVMs**
 
 * **Overview:** [Fly.io](https://fly.io) is a developer-focused cloud platform that runs applications using hardware-virtualized containers (microVMs) across 35 global regions. Founded in 2017, it bridges the gap between traditional VPS hosting and modern serverless platforms, offering the flexibility of VMs with the convenience of containerized deployment.
 * **GitHub:** N/A (proprietary)
@@ -357,7 +377,7 @@ The choice of the AGPL-3.0 license for Daytona's core product is a significant s
   * **Workload Suitability:** Supports both **short and long-running** workloads. Can scale from single request handling to always-on applications with thousands of instances.  
 * **Unique Value Proposition:** Combines the isolation benefits of microVMs with a developer-friendly deployment experience. Particularly strong for applications that need global distribution but require more than what edge computing platforms can provide.
 
-### **4.8. Kata Containers: Secure Container Runtime**
+### **4.9. Kata Containers: Secure Container Runtime**
 
 * **Overview:** [Kata Containers](https://katacontainers.io) is an open-source container runtime that delivers the speed of containers with the security of virtual machines. Launched in 2017 by the Open Infrastructure Foundation, it represents a unique approach to container security by running each container in its own lightweight virtual machine. This hybrid approach addresses the fundamental security concerns of traditional container runtimes while maintaining container ecosystem compatibility.
 * **GitHub:** [kata-containers/kata-containers](https://github.com/kata-containers/kata-containers)
@@ -374,7 +394,7 @@ The choice of the AGPL-3.0 license for Daytona's core product is a significant s
   * **Workload Suitability:** Ideal for **long-running, stateful** workloads that require strong security isolation. Perfect for multi-tenant environments, untrusted code execution, and compliance-heavy workloads where container escape vulnerabilities are unacceptable.  
 * **Unique Value Proposition:** Kata Containers solves the "container vs. VM" dilemma by providing both. Organizations get the operational benefits of containers (fast startup, density, orchestration) with the security guarantees of VMs (hardware isolation, dedicated kernel). This makes it particularly valuable for production environments running untrusted workloads or requiring regulatory compliance.
 
-### **4.9. Other Notable Platforms & Cloud Development Environments (CDEs)**
+### **4.10. Other Notable Platforms & Cloud Development Environments (CDEs)**
 
 While the platforms above are specialized sandboxing runtimes, the broader category of Cloud Development Environments (CDEs) also relies heavily on sandboxing technology to function. They provide a useful point of comparison.
 
@@ -499,16 +519,16 @@ Your organization's operational model and compliance requirements will determine
 
 * **For a Managed Service (SaaS):** If you want to accelerate development and offload the operational burden of managing sandboxing infrastructure, a SaaS platform is the best choice. These platforms offer usage-based pricing and handle all the scaling, maintenance, and security of the underlying infrastructure.  
   * **Recommended:** **e2b** and **Daytona** provide mature, feature-rich SaaS offerings.  
-* **For Full Control (Self-Hosted):** If you have strict data sovereignty, regulatory compliance (e.g., GDPR), or security policies that mandate running all infrastructure within your own network perimeter, a self-hosted solution is necessary.  
-  * **Recommended:** **microsandbox** is self-hosted by design and is the most straightforward choice for this model.  
+* **For Full Control (Self-Hosted):** If you have strict data sovereignty, regulatory compliance (e.g., GDPR), or security policies that mandate running all infrastructure within your own network perimeter, a self-hosted solution is necessary.
+  * **Recommended:** **microsandbox** and **Den** are self-hosted by design and are the most straightforward choices for this model.
     **Daytona**, **e2b**, **Gitpod**, and **Coder** also offer robust self-hosting options, typically as part of their enterprise offerings.
 
 ### **Axis 4: AI/Agent-Specific vs. General-Purpose**
 
 Finally, consider whether you need a tool tailored for a specific domain or a more general-purpose platform.
 
-* **For AI-Centric Workflows:** If you are building AI agents, code interpreters, or other LLM-powered applications, choosing a platform that is explicitly optimized for this domain can provide significant advantages. Their SDKs and features are often designed to solve common problems in agentic development.  
-  * **Recommended:** **e2b** and **Daytona** are heavily focused on the AI and agent use case.  
+* **For AI-Centric Workflows:** If you are building AI agents, code interpreters, or other LLM-powered applications, choosing a platform that is explicitly optimized for this domain can provide significant advantages. Their SDKs and features are often designed to solve common problems in agentic development.
+  * **Recommended:** **e2b**, **Daytona**, and **Den** are heavily focused on the AI and agent use case. **Den** is particularly notable for its MCP server integration and snapshot/restore capabilities for iterative agent workflows.  
 * **For General-Purpose Execution/Development:** If your needs are broader, such as providing general-purpose development environments or a secure runtime for a variety of applications, a more general platform may be a better fit.  
   * **Recommended:** **microsandbox** is a powerful, general-purpose secure execution engine.  
     **Coder** and **Gitpod** are leading general-purpose Cloud Development Environments.
