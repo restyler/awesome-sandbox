@@ -93,7 +93,7 @@ Developed and open-sourced by Amazon Web Services (AWS), [Firecracker](https://f
 * **Security Model:** For defense-in-depth, Firecracker employs a companion "jailer" process. The jailer sets up a secure environment using Linux cgroups and namespaces to isolate the Firecracker VMM process itself before dropping its privileges. This provides a second layer of containment in the unlikely event that the virtualization barrier is compromised.  
 * **Adoption:** This technology is the foundation for many major platforms:
   - [**e2b** ↓](#41-e2b-the-ai-agent-sandbox-runtime) - leverages Firecracker for secure, fast-starting sandboxes for AI agents
-  - [**Fly.io** ↓](#47-flyio-modern-application-hosting-with-microvms) - uses Firecracker microVMs for modern application hosting
+  - [**Fly.io** ↓](#48-flyio-modern-application-hosting-with-microvms) - uses Firecracker microVMs for modern application hosting
   - **AWS Lambda** - Amazon's serverless computing service runs on Firecracker
   - **AWS Fargate** - Amazon's container hosting service uses Firecracker for isolation
 
@@ -163,7 +163,7 @@ This is the most lightweight form of sandboxing, where isolation is enforced by 
 * **Memory Safety:** WASM code executes in a linear memory space that is completely isolated from the host process's memory. Every memory access is automatically bounds-checked by the runtime, preventing buffer overflows from affecting the host or other WASM modules. The call stack is also managed by the runtime and is inaccessible to the WASM code, which neutralizes traditional stack-smashing attacks.  
 * **Capability-Based Security:** A WASM module is inert by default. It has no intrinsic ability to access the file system, network, or any other external resource. To perform any I/O, the host environment must explicitly provide these capabilities by passing in functions (known as "imports") during instantiation. This "default-deny" posture ensures that a module can only do what it has been explicitly permitted to do.
 * **Adoption:** This technology is used across many platforms:
-  - [**WebContainers** ↓](#44-webcontainers-browser-native-development-runtime) - uses WASM for browser-based Node.js runtime
+  - [**WebContainers** ↓](#45-webcontainers-browser-native-development-runtime) - uses WASM for browser-based Node.js runtime
   - **Shopify Scripts** - uses WASM for safe execution of custom scripts
   - **Fastly Compute@Edge** - uses WASM for edge computing
   - **Wasmtime** - server-side WASM runtime
@@ -182,7 +182,7 @@ V8 Isolates are a core feature of Google's V8 JavaScript engine. An Isolate repr
 * **Language-Specific Limitations:** While V8 Isolates excel at JavaScript execution, they are not well-suited for Python workloads. The V8 engine is specifically designed and optimized for JavaScript's execution model, memory management, and runtime characteristics. Python applications require different runtime environments and cannot benefit from V8's isolation technology. For Python sandboxing, alternative approaches like nsjail, gVisor, or microVMs are more appropriate choices.
 * **The V8 Sandbox:** It is important to distinguish V8 Isolates from the newer [V8 Sandbox](https://chromium.googlesource.com/v8/v8.git/+/refs/heads/main/src/sandbox/README.md). The V8 Sandbox is a further defense-in-depth measure that operates *within* an isolate. It reserves a large region of virtual address space and ensures that all V8 heap pointers are confined to that space. This is designed to mitigate the impact of potential vulnerabilities *within the V8 engine itself*, preventing an exploit from achieving arbitrary memory read/write capabilities outside the sandboxed region. This demonstrates a multi-layered approach to security, even within the runtime.
 * **Adoption:** This technology powers major edge computing platforms:
-  - [**Cloudflare Workers** ↓](#46-cloudflare-workers-edge-computing-with-v8-isolates) - uses V8 Isolates for edge computing
+  - [**Cloudflare Workers** ↓](#47-cloudflare-workers-edge-computing-with-v8-isolates) - uses V8 Isolates for edge computing
   - **Deno Deploy** - uses V8 Isolates for serverless JavaScript
   - **Shopify Scripts** - uses V8 Isolates for safe script execution
   - **Chrome Browser** - uses V8 Isolates for tab isolation
@@ -227,7 +227,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**e2b** ↓](#41-e2b-the-ai-agent-sandbox-runtime) | Firecracker (MicroVM) | Nov 2023 | 8.9k+ | Apache-2.0 | Yes | Yes | Persistent | Full | Short & Long-Running |
 | [**Daytona** ↓](#42-daytona-secure--elastic-infrastructure-for-ai-code) | Containers (OCI/Docker) | 2023 | 21k+ | AGPL-3.0 | Yes | Yes | Persistent, Archivable | Full | Long-Running & Stateful |
 | [**microsandbox** ↓](#43-microsandbox-self-hosted-microvms-for-untrusted-code) | libkrun (MicroVM) | May 2025 | 3.3k+ | Apache-2.0 | Yes (Primary) | No | Persistent & Ephemeral | Full | Short & Long-Running |
-| [**Den** ↓](#44-den-self-hosted-sandbox-runtime-for-ai-agents) | Docker Containers | 2025 | New | AGPL-3.0 | Yes (Primary) | No | Persistent (Snapshot/Restore) | Full | Short & Long-Running |
+| [**Den** ↓](#44-den-self-hosted-sandbox-runtime-for-ai-agents) | Docker Containers | 2025 | 4 | AGPL-3.0 | Yes (Primary) | No | Persistent (Snapshot/Restore) | Full | Short & Long-Running |
 | [**WebContainers** ↓](#45-webcontainers-browser-native-development-runtime) | Browser-based Node.js/Wasm | 2021 | N/A | Proprietary | No | Yes | Ephemeral | Browser-limited | Short & Medium-Running |
 | [**Replit** ↓](#46-replit-collaborative-browser-based-development) | Containers/VMs | 2016 | N/A | Proprietary | No | Yes | Persistent | Full | Short & Long-Running |
 | [**Cloudflare Workers** ↓](#47-cloudflare-workers-edge-computing-with-v8-isolates) | V8 Isolates | 2017 | N/A | Proprietary | No | Yes | Ephemeral | Edge-limited | Short-Running |
@@ -297,7 +297,7 @@ The choice of the AGPL-3.0 license for Daytona's core product is a significant s
 * **Overview:** Den is a self-hosted sandbox runtime purpose-built for AI agents. Positioned as an open-source alternative to e2b, it provides isolated Docker container environments with a REST API, WebSocket streaming, and an MCP server for direct LLM integration. Den focuses on giving AI agents full-featured execution environments with snapshot/restore capabilities and dynamic memory management, all under your own infrastructure.
 * **GitHub:** [us/den](https://github.com/us/den)
 * **Website:** [github.com/us/den](https://github.com/us/den)
-* **Launch Date:** 2025.
+* **Launch Date:** 2025
 * **License:** **AGPL-3.0** — strong copyleft license requiring network-distributed modifications to be open-sourced. Similar licensing strategy to Daytona and Gitpod.
 * **Hosting:**
   * **SaaS:** No. Den is exclusively a **self-hosted** solution, giving users full control over their infrastructure and data.
