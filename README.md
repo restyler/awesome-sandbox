@@ -20,6 +20,7 @@ This document provides a comprehensive, curated list and analysis of modern code
     - [V8 Isolates](#v8-isolates)
   - [2.4. Containerization: Namespace-Based Isolation](#24-containerization-namespace-based-isolation)
     - [Docker/OCI Containers](#dockeroci-containers)
+    - [Incus System Containers](#incus-system-containers)
 - [3. Feature Matrix: At-a-Glance Comparison](#3-feature-matrix-at-a-glance-comparison)
 - [4. In-Depth Platform Profiles](#4-in-depth-platform-profiles)
   - [4.1. e2b: The AI Agent Sandbox Runtime](#41-e2b-the-ai-agent-sandbox-runtime)
@@ -30,7 +31,8 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.6. Cloudflare Workers: Edge Computing with V8 Isolates](#46-cloudflare-workers-edge-computing-with-v8-isolates)
   - [4.7. Fly.io: Modern Application Hosting with MicroVMs](#47-flyio-modern-application-hosting-with-microvms)
   - [4.8. Kata Containers: Secure Container Runtime](#48-kata-containers-secure-container-runtime)
-  - [4.9. Other Notable Platforms & Cloud Development Environments (CDEs)](#49-other-notable-platforms--cloud-development-environments-cdes)
+  - [4.9. Code on Incus (COI): Security-Hardened Runtime for AI Coding Agents](#49-code-on-incus-coi-security-hardened-runtime-for-ai-coding-agents)
+  - [4.10. Other Notable Platforms & Cloud Development Environments (CDEs)](#410-other-notable-platforms--cloud-development-environments-cdes)
 - [6. Docker vs MicroVM for Sandboxing](#6-docker-vs-microvm-for-sandboxing)
 - [7. Choosing Your Sandbox: A Decision Framework](#7-choosing-your-sandbox-a-decision-framework)
   - [Axis 1: Security vs. Performance vs. Compatibility](#axis-1-security-vs-performance-vs-compatibility)
@@ -64,6 +66,7 @@ The following table provides a comparative overview of the core sandboxing techn
 | [**gVisor** ↓](#gvisor) | Application Kernel | ~100ms | Medium | Any Linux host | High (Linux API subset) | Multi-tenant containers, cloud services |
 | [**nsjail** ↓](#nsjail) | Process-Level | ~50ms | Very Low | Any Linux host | High (filtered syscalls) | Code execution, long-running processes |
 | [**Docker/OCI** ↓](#dockeroci-containers) | Namespace-Level | ~10-50ms | Very Low | Any Linux host | Full Linux | Development, CI/CD, application deployment |
+| [**Incus** ↓](#incus-system-containers) | System Container / QEMU VM | ~1-3s (containers), ~3-10s (VMs) | Low (containers), Medium (VMs) | Any Linux host (containers) or KVM/QEMU (VMs) | Full Linux (full init system, dedicated kernel in VM mode) | AI agent sandboxing, development environments, multi-tenant isolation |
 | [**WebAssembly** ↓](#webassembly-wasm) | Runtime-Level | ~10ms | Very Low | Any platform | Limited (WASM modules) | Edge computing, plugin systems |
 | [**V8 Isolates** ↓](#v8-isolates) | Runtime-Level | ~1ms | Very Low | Any platform | JavaScript only | Edge functions, serverless JavaScript |
 
@@ -211,10 +214,26 @@ Containerization represents the most widely adopted approach to application isol
 * **Adoption:** This technology is ubiquitous across the industry:
   - [**Daytona** ↓](#42-daytona-secure--elastic-infrastructure-for-ai-code) - uses containers for development environments
   - [**Replit** ↓](#45-replit-collaborative-browser-based-development) - uses containers for coding environments
-  - [**Gitpod** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development workspaces
-  - [**Coder** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development environments
+  - [**Gitpod** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development workspaces
+  - [**Coder** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development environments
   - **Kubernetes** - the foundation of modern container orchestration
   - **Docker Hub** - the largest container registry with billions of downloads
+
+#### **Incus System Containers**
+
+* **GitHub:** [lxc/incus](https://github.com/lxc/incus)
+* **Website:** [linuxcontainers.org/incus](https://linuxcontainers.org/incus/)
+
+[Incus](https://linuxcontainers.org/incus/) is a powerful system container and virtual machine manager, maintained as a community fork of Canonical's LXD by many of the same people who originally created LXD. Unlike Docker's application containers (which isolate single processes), Incus system containers run a complete operating system with a full init system, making them behave like lightweight virtual machines while sharing the host kernel.
+
+* **Mechanism:** Incus operates in two distinct modes. System containers use Linux kernel primitives - namespaces, cgroups, AppArmor/SELinux - applied to an entire operating system rather than a single process. Each container runs its own init system (e.g., systemd), can manage services, run Docker inside itself (Docker-in-Container), and behave like a full machine. Full QEMU/KVM virtual machines provide hardware-level isolation with a dedicated guest kernel, comparable to Firecracker or libkrun but with the operational convenience of the Incus management layer. Users can choose between system containers (faster, lighter) and VMs (stronger isolation with dedicated kernel) depending on their threat model. Containers run unprivileged by default, with automatic UID/GID mapping to prevent privilege escalation to the host.
+* **Advantages:** System containers provide significantly stronger isolation than application containers because they present a complete OS boundary rather than just process-level namespacing. The full init system enables running complex multi-service workloads, including Docker daemons, SSH servers, and development toolchains - all within a single isolated container. Incus also offers an image-based workflow with daily-published distribution images, multiple storage backends, network management, and device passthrough (USB, GPU, NICs, disks).
+* **Security Model:** Incus employs defense-in-depth: unprivileged containers by default prevent root-in-container from mapping to root-on-host; Seccomp filters restrict dangerous system calls; AppArmor profiles confine container access; and resource restrictions via cgroups prevent denial-of-service. The system container model means that even if a process inside the container is compromised, the attacker faces a full OS boundary rather than just namespace isolation. For workloads requiring the strongest possible isolation, Incus's QEMU VM mode provides a hardware-enforced boundary with a dedicated kernel, achieving microVM-grade security while retaining the same unified CLI and management API.
+* **Use Cases:** Particularly well-suited for development environments, AI coding agent sandboxes, CI/CD pipelines requiring full OS capabilities, and multi-tenant isolation scenarios where each tenant needs a complete, isolated operating system environment. The ability to run Docker inside Incus containers makes it ideal for workloads that need both strong isolation and Docker compatibility.
+* **Adoption:** This technology is used by:
+  - [**Code on Incus (COI)** ↓](#49-code-on-incus-coi-security-hardened-runtime-for-ai-coding-agents) - security-hardened AI coding agent runtime built on Incus system containers
+  - **Canonical** - Incus's predecessor LXD powers Ubuntu's container infrastructure
+  - **Enterprise environments** - used for multi-tenant hosting and development environments
 
 ## **3\. Feature Matrix: At-a-Glance Comparison**
 
@@ -230,9 +249,10 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Cloudflare Workers** ↓](#46-cloudflare-workers-edge-computing-with-v8-isolates) | V8 Isolates | 2017 | N/A | Proprietary | No | Yes | Ephemeral | Edge-limited | Short-Running |
 | [**Fly.io** ↓](#47-flyio-modern-application-hosting-with-microvms) | MicroVMs (Firecracker) | 2017 | N/A | Proprietary | No | Yes | Persistent | Full | Short & Long-Running |
 | [**Kata Containers** ↓](#48-kata-containers-secure-container-runtime) | MicroVM Containers | 2017 | 5.2k+ | Apache-2.0 | Yes | No | Persistent | Full | Long-Running & Stateful |
-| [**CodeSandbox** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | MicroVM & Browser | 2017 | 13.4k+ | Proprietary / OSS Parts | No | Yes | Persistent | Full | Short & Long-Running |
-| [**Gitpod** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | Containers | 2020 | 12.9k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
-| [**Coder** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | Containers / VMs | 2019 | 8.1k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
+| [**Code on Incus (COI)** ↓](#49-code-on-incus-coi-security-hardened-runtime-for-ai-coding-agents) | Incus System Containers | Dec 2025 | 350+ | MIT | Yes (Only) | No | Persistent | Restricted/Allowlist/Open | Long-Running & Stateful |
+| [**CodeSandbox** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) | MicroVM & Browser | 2017 | 13.4k+ | Proprietary / OSS Parts | No | Yes | Persistent | Full | Short & Long-Running |
+| [**Gitpod** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) | Containers | 2020 | 12.9k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
+| [**Coder** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) | Containers / VMs | 2019 | 8.1k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -374,7 +394,32 @@ The choice of the AGPL-3.0 license for Daytona's core product is a significant s
   * **Workload Suitability:** Ideal for **long-running, stateful** workloads that require strong security isolation. Perfect for multi-tenant environments, untrusted code execution, and compliance-heavy workloads where container escape vulnerabilities are unacceptable.  
 * **Unique Value Proposition:** Kata Containers solves the "container vs. VM" dilemma by providing both. Organizations get the operational benefits of containers (fast startup, density, orchestration) with the security guarantees of VMs (hardware isolation, dedicated kernel). This makes it particularly valuable for production environments running untrusted workloads or requiring regulatory compliance.
 
-### **4.9. Other Notable Platforms & Cloud Development Environments (CDEs)**
+### **4.9. Code on Incus (COI): Security-Hardened Runtime for AI Coding Agents**
+
+* **Overview:** [Code on Incus](https://github.com/mensfeld/code-on-incus) (COI) is a CLI tool that runs AI coding assistants inside isolated Incus system containers with real-time threat detection. Rather than treating the AI agent as a trusted process on the host, COI treats it as an untrusted workload that must be fully contained. The only artifacts that leave the container are the workspace files the user chooses to inspect - no git hooks, no VS Code tasks, no credential leakage, no host network access. It is designed around the mental model of a fleet of isolated containers, each playing a distinct role - some ephemeral, some persistent - that can operate in parallel without interfering with each other.
+* **GitHub:** [mensfeld/code-on-incus](https://github.com/mensfeld/code-on-incus)
+* **Launch Date:** Initial release (v0.1.0) on **December 11, 2025**. Active development with monthly releases; current development version is 0.8.0.
+* **GitHub Stars:** Approximately 350+.
+* **License:** **MIT License** - permissive, with no copyleft restrictions.
+* **Hosting:**
+  * **SaaS:** No. COI is exclusively a **self-hosted** solution that runs on the user's own Linux or macOS machine.
+  * **Self-Hosted:** Yes, this is the only deployment model. A one-liner install script is provided, and the tool can be uninstalled by simply removing its binary.
+* **Supported AI Coding Tools:**
+  * **Claude Code** (Anthropic) - default and primary target
+  * **OpenCode** - open-source AI coding agent
+* **Capabilities:**
+  * **Filesystem Access:** **Persistent** - the project workspace is mounted into the container, and file changes persist to the host. Automatic UID/GID mapping ensures files created inside the container appear on the host owned by the user, not root. Protected paths (`.git/hooks`, `.git/config`, `.husky`, `.vscode`) are mounted read-only to prevent supply-chain attacks via malicious git hooks or editor tasks.
+  * **Network Access:** COI provides a three-tier network isolation model: 
+    * **Restricted** (default - blocks private/local networks, allows internet),
+    * **Allowlist** (only specified destinations permitted),
+    * **Open** (unrestricted). An optional nftables-based security monitoring daemon (`--monitor`) provides real-time kernel-level threat detection including reverse shell detection, C2 connection identification, data exfiltration monitoring, DNS tunneling detection, and credential scanning. Threats trigger automated responses: HIGH-severity events pause the container; CRITICAL events terminate it.
+  * **Credential Isolation:** SSH keys, `.env` files, and Git credentials are never exposed to the container unless explicitly mounted. SSH agent forwarding is supported without exposing private keys.
+  * **Workload Suitability:** Designed for **long-running, stateful** AI coding sessions. Multi-slot parallel sessions allow running multiple independent agents simultaneously. Session resume, container snapshots, and rollback provide continuity across work sessions.
+* **Underlying Technology:** COI uses Incus system containers, which run a full operating system with init system rather than just isolating a single process. This enables Docker-in-Container support, full package management, and a complete development toolchain (Node.js, Python 3, pnpm, TypeScript, mise runtime manager) within each sandbox. The system container model provides stronger isolation than Docker application containers while avoiding the hardware virtualization requirements of microVMs.
+* **Platform Support:** Linux only (x86_64 and arm64). macOS/Colima is partially supported, but nftables monitoring is unavailable on that platform.
+* **Security Philosophy:** COI's design prioritizes supply-chain security. When an AI tool writes and executes code autonomously, the blast radius of a compromised dependency or a malicious prompt is near zero. The container's Seccomp and AppArmor profiles are verified, and the security daemon provides continuous audit logging in JSONL format for forensic analysis.
+
+### **4.10. Other Notable Platforms & Cloud Development Environments (CDEs)**
 
 While the platforms above are specialized sandboxing runtimes, the broader category of Cloud Development Environments (CDEs) also relies heavily on sandboxing technology to function. They provide a useful point of comparison.
 
@@ -444,6 +489,8 @@ When evaluating sandboxing solutions, one of the most fundamental architectural 
 Some platforms combine both approaches:
 - **Kata Containers**: Provides container-compatible API with VM-level isolation
 - **gVisor**: Application kernel approach offering intermediate security
+- **Incus System Containers**: Full OS containers with init system, stronger than Docker application containers, lighter than microVMs, with optional VM mode for dedicated kernels
+- **Code on Incus (COI)**: Leverages Incus system containers with layered security (nftables monitoring, credential isolation, protected paths) for AI agent sandboxing
 - **Platform-Specific**: Many cloud providers use MicroVMs for hosting but containers for application deployment
 
 ### **Practical Considerations**
@@ -500,15 +547,15 @@ Your organization's operational model and compliance requirements will determine
 * **For a Managed Service (SaaS):** If you want to accelerate development and offload the operational burden of managing sandboxing infrastructure, a SaaS platform is the best choice. These platforms offer usage-based pricing and handle all the scaling, maintenance, and security of the underlying infrastructure.  
   * **Recommended:** **e2b** and **Daytona** provide mature, feature-rich SaaS offerings.  
 * **For Full Control (Self-Hosted):** If you have strict data sovereignty, regulatory compliance (e.g., GDPR), or security policies that mandate running all infrastructure within your own network perimeter, a self-hosted solution is necessary.  
-  * **Recommended:** **microsandbox** is self-hosted by design and is the most straightforward choice for this model.  
+  * **Recommended:** **microsandbox** and **Code on Incus (COI)** are self-hosted by design. COI is particularly well-suited for local development with AI coding agents, providing real-time threat detection and credential isolation on your own machine.
     **Daytona**, **e2b**, **Gitpod**, and **Coder** also offer robust self-hosting options, typically as part of their enterprise offerings.
 
 ### **Axis 4: AI/Agent-Specific vs. General-Purpose**
 
 Finally, consider whether you need a tool tailored for a specific domain or a more general-purpose platform.
 
-* **For AI-Centric Workflows:** If you are building AI agents, code interpreters, or other LLM-powered applications, choosing a platform that is explicitly optimized for this domain can provide significant advantages. Their SDKs and features are often designed to solve common problems in agentic development.  
-  * **Recommended:** **e2b** and **Daytona** are heavily focused on the AI and agent use case.  
+* **For AI-Centric Workflows:** If you are building AI agents, code interpreters, or other LLM-powered applications, choosing a platform that is explicitly optimized for this domain can provide significant advantages. Their SDKs and features are often designed to solve common problems in agentic development.
+  * **Recommended:** **e2b** and **Daytona** are heavily focused on the AI and agent use case. **Code on Incus (COI)** is purpose-built for running AI coding agents (Claude Code, OpenCode) with supply-chain security as a first-class concern.  
 * **For General-Purpose Execution/Development:** If your needs are broader, such as providing general-purpose development environments or a secure runtime for a variety of applications, a more general platform may be a better fit.  
   * **Recommended:** **microsandbox** is a powerful, general-purpose secure execution engine.  
     **Coder** and **Gitpod** are leading general-purpose Cloud Development Environments.
