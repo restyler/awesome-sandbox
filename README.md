@@ -233,6 +233,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**CodeSandbox** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | MicroVM & Browser | 2017 | 13.4k+ | Proprietary / OSS Parts | No | Yes | Persistent | Full | Short & Long-Running |
 | [**Gitpod** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | Containers | 2020 | 12.9k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
 | [**Coder** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | Containers / VMs | 2019 | 8.1k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
+| [**Declaw** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | Firecracker (MicroVM) | 2026 | N/A | Apache-2.0 (SDKs & CLI); platform commercial | Yes (Terraform, AWS) | Yes | Persistent | Policy-controlled (default-deny, allowlists) | Short & Long-Running |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -383,6 +384,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 * **[Gitpod](https://gitpod.io) & [Coder](https://coder.com):** These are leading open-source CDEs that focus on creating ephemeral, reproducible development environments directly from a Git repository context. Their primary goal is to solve the "works on my machine" problem by standardizing environments using configuration files like  
   .gitpod.yml or devcontainer.json.  
   * **Sandboxing Approach:** Their isolation is typically based on **containers** (e.g., Docker). However, their architectures are sophisticated. [Gitpod employs a zero-trust model](https://www.gitpod.io/docs/flex/introduction/zero-trust) with a central management plane and runners that deploy environments within a customer's own cloud infrastructure, ensuring source code never leaves the network perimeter. [Coder uses Terraform as its provisioning engine](https://coder.com/docs/admin/infrastructure/architecture), which provides immense flexibility. A Coder template can define a workspace as a Docker container, a Kubernetes pod, or even a full VM on a cloud provider, allowing administrators to choose the appropriate level of isolation for their needs. Both projects use the AGPL-3.0 license for their open-source editions and offer enterprise versions with commercial licenses.
+* **[Declaw](https://declaw.ai):** A security-first sandbox platform for AI agents built on **Firecracker microVMs**. Beyond hardware-level isolation, it layers in runtime security controls: per-sandbox network policy enforcement (default-deny egress with domain allowlists), built-in guardrails for PII scanning and prompt injection defense, and audit logging. Available as a managed cloud service or self-hosted (Terraform on AWS). The [Python, TypeScript, and Go SDKs plus CLI](https://github.com/declaw-ai) are open source (Apache-2.0); the platform itself is commercial.
 
 ## **6\. Docker vs MicroVM for Sandboxing**
 
