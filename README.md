@@ -31,6 +31,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.7. Fly.io: Modern Application Hosting with MicroVMs](#47-flyio-modern-application-hosting-with-microvms)
   - [4.8. Kata Containers: Secure Container Runtime](#48-kata-containers-secure-container-runtime)
   - [4.9. Other Notable Platforms & Cloud Development Environments (CDEs)](#49-other-notable-platforms--cloud-development-environments-cdes)
+  - [4.10. mitos: Self-Hostable CoW Fork of Running Firecracker MicroVMs](#410-mitos-self-hostable-cow-fork-of-running-firecracker-microvms)
 - [6. Docker vs MicroVM for Sandboxing](#6-docker-vs-microvm-for-sandboxing)
 - [7. Choosing Your Sandbox: A Decision Framework](#7-choosing-your-sandbox-a-decision-framework)
   - [Axis 1: Security vs. Performance vs. Compatibility](#axis-1-security-vs-performance-vs-compatibility)
@@ -225,6 +226,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**e2b** ↓](#41-e2b-the-ai-agent-sandbox-runtime) | Firecracker (MicroVM) | Nov 2023 | 8.9k+ | Apache-2.0 | Yes | Yes | Persistent | Full | Short & Long-Running |
 | [**Daytona** ↓](#42-daytona-secure--elastic-infrastructure-for-ai-code) | Containers (OCI/Docker) | 2023 | 21k+ | AGPL-3.0 | Yes | Yes | Persistent, Archivable | Full | Long-Running & Stateful |
 | [**microsandbox** ↓](#43-microsandbox-self-hosted-microvms-for-untrusted-code) | libkrun (MicroVM) | May 2025 | 3.3k+ | Apache-2.0 | Yes (Primary) | No | Persistent & Ephemeral | Full | Short & Long-Running |
+| [**mitos** ↓](#410-mitos-self-hostable-cow-fork-of-running-firecracker-microvms) | Firecracker (MicroVM) | 2026 | New | Apache-2.0 | Yes (Primary) | Planned | Persistent & Ephemeral | Full | Short & Long-Running |
 | [**WebContainers** ↓](#44-webcontainers-browser-native-development-runtime) | Browser-based Node.js/Wasm | 2021 | N/A | Proprietary | No | Yes | Ephemeral | Browser-limited | Short & Medium-Running |
 | [**Replit** ↓](#45-replit-collaborative-browser-based-development) | Containers/VMs | 2016 | N/A | Proprietary | No | Yes | Persistent | Full | Short & Long-Running |
 | [**Cloudflare Workers** ↓](#46-cloudflare-workers-edge-computing-with-v8-isolates) | V8 Isolates | 2017 | N/A | Proprietary | No | Yes | Ephemeral | Edge-limited | Short-Running |
@@ -383,6 +385,16 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 * **[Gitpod](https://gitpod.io) & [Coder](https://coder.com):** These are leading open-source CDEs that focus on creating ephemeral, reproducible development environments directly from a Git repository context. Their primary goal is to solve the "works on my machine" problem by standardizing environments using configuration files like  
   .gitpod.yml or devcontainer.json.  
   * **Sandboxing Approach:** Their isolation is typically based on **containers** (e.g., Docker). However, their architectures are sophisticated. [Gitpod employs a zero-trust model](https://www.gitpod.io/docs/flex/introduction/zero-trust) with a central management plane and runners that deploy environments within a customer's own cloud infrastructure, ensuring source code never leaves the network perimeter. [Coder uses Terraform as its provisioning engine](https://coder.com/docs/admin/infrastructure/architecture), which provides immense flexibility. A Coder template can define a workspace as a Docker container, a Kubernetes pod, or even a full VM on a cloud provider, allowing administrators to choose the appropriate level of isolation for their needs. Both projects use the AGPL-3.0 license for their open-source editions and offer enterprise versions with commercial licenses.
+
+### **4.10. mitos: Self-Hostable CoW Fork of Running Firecracker MicroVMs**
+
+* **GitHub:** [mitos-run/mitos](https://github.com/mitos-run/mitos)
+* **Website:** [mitos.run](https://mitos.run)
+* **Primary Technology:** Firecracker (MicroVM)
+* **License:** Apache-2.0
+* **Overview:** mitos is an open-source, Kubernetes-native runtime for AI-agent sandboxes whose distinguishing feature is N-way **live copy-on-write fork of a running microVM**. It snapshots a warmed Firecracker VM and restores it into many independent children that share the parent's memory pages until they write, so fanning one agent into many parallel attempts costs each child only its dirtied pages rather than a full boot. It runs on any KVM-capable Kubernetes cluster (bare metal is a first-class target) or as a standalone REST server with no Kubernetes, and ships Python/TypeScript SDKs and an MCP server.
+* **Self-Hosted:** Yes (primary). The engine is open source and runs on your own hardware; a managed service is planned.
+* **Maturity:** Pre-1.0, and it has not yet had an external security review. The project maintains a published threat model and a "no unverified claims" rule: every benchmark it states is reproducible from the repo's `bench/`.
 
 ## **6\. Docker vs MicroVM for Sandboxing**
 
