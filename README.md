@@ -30,7 +30,8 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.6. Cloudflare Workers: Edge Computing with V8 Isolates](#46-cloudflare-workers-edge-computing-with-v8-isolates)
   - [4.7. Fly.io: Modern Application Hosting with MicroVMs](#47-flyio-modern-application-hosting-with-microvms)
   - [4.8. Kata Containers: Secure Container Runtime](#48-kata-containers-secure-container-runtime)
-  - [4.9. Other Notable Platforms & Cloud Development Environments (CDEs)](#49-other-notable-platforms--cloud-development-environments-cdes)
+  - [4.9. Tenki: Firecracker MicroVMs for AI Agents](#49-tenki-firecracker-microvms-for-ai-agents)
+  - [4.10. Other Notable Platforms & Cloud Development Environments (CDEs)](#410-other-notable-platforms--cloud-development-environments-cdes)
 - [6. Docker vs MicroVM for Sandboxing](#6-docker-vs-microvm-for-sandboxing)
 - [7. Choosing Your Sandbox: A Decision Framework](#7-choosing-your-sandbox-a-decision-framework)
   - [Axis 1: Security vs. Performance vs. Compatibility](#axis-1-security-vs-performance-vs-compatibility)
@@ -211,8 +212,8 @@ Containerization represents the most widely adopted approach to application isol
 * **Adoption:** This technology is ubiquitous across the industry:
   - [**Daytona** ↓](#42-daytona-secure--elastic-infrastructure-for-ai-code) - uses containers for development environments
   - [**Replit** ↓](#45-replit-collaborative-browser-based-development) - uses containers for coding environments
-  - [**Gitpod** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development workspaces
-  - [**Coder** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development environments
+  - [**Gitpod** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development workspaces
+  - [**Coder** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development environments
   - **Kubernetes** - the foundation of modern container orchestration
   - **Docker Hub** - the largest container registry with billions of downloads
 
@@ -225,14 +226,15 @@ The following table provides a high-level, comparative overview of the leading c
 | [**e2b** ↓](#41-e2b-the-ai-agent-sandbox-runtime) | Firecracker (MicroVM) | Nov 2023 | 8.9k+ | Apache-2.0 | Yes | Yes | Persistent | Full | Short & Long-Running |
 | [**Daytona** ↓](#42-daytona-secure--elastic-infrastructure-for-ai-code) | Containers (OCI/Docker) | 2023 | 21k+ | AGPL-3.0 | Yes | Yes | Persistent, Archivable | Full | Long-Running & Stateful |
 | [**microsandbox** ↓](#43-microsandbox-self-hosted-microvms-for-untrusted-code) | libkrun (MicroVM) | May 2025 | 3.3k+ | Apache-2.0 | Yes (Primary) | No | Persistent & Ephemeral | Full | Short & Long-Running |
+| [**Tenki** ↓](#49-tenki-firecracker-microvms-for-ai-agents) | Firecracker (MicroVM) | 2026 | N/A | Proprietary | No | Yes | Persistent & Ephemeral | Full | Short & Long-Running |
 | [**WebContainers** ↓](#44-webcontainers-browser-native-development-runtime) | Browser-based Node.js/Wasm | 2021 | N/A | Proprietary | No | Yes | Ephemeral | Browser-limited | Short & Medium-Running |
 | [**Replit** ↓](#45-replit-collaborative-browser-based-development) | Containers/VMs | 2016 | N/A | Proprietary | No | Yes | Persistent | Full | Short & Long-Running |
 | [**Cloudflare Workers** ↓](#46-cloudflare-workers-edge-computing-with-v8-isolates) | V8 Isolates | 2017 | N/A | Proprietary | No | Yes | Ephemeral | Edge-limited | Short-Running |
 | [**Fly.io** ↓](#47-flyio-modern-application-hosting-with-microvms) | MicroVMs (Firecracker) | 2017 | N/A | Proprietary | No | Yes | Persistent | Full | Short & Long-Running |
 | [**Kata Containers** ↓](#48-kata-containers-secure-container-runtime) | MicroVM Containers | 2017 | 5.2k+ | Apache-2.0 | Yes | No | Persistent | Full | Long-Running & Stateful |
-| [**CodeSandbox** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | MicroVM & Browser | 2017 | 13.4k+ | Proprietary / OSS Parts | No | Yes | Persistent | Full | Short & Long-Running |
-| [**Gitpod** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | Containers | 2020 | 12.9k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
-| [**Coder** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | Containers / VMs | 2019 | 8.1k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
+| [**CodeSandbox** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) | MicroVM & Browser | 2017 | 13.4k+ | Proprietary / OSS Parts | No | Yes | Persistent | Full | Short & Long-Running |
+| [**Gitpod** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) | Containers | 2020 | 12.9k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
+| [**Coder** ↓](#410-other-notable-platforms--cloud-development-environments-cdes) | Containers / VMs | 2019 | 8.1k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -374,7 +376,23 @@ The choice of the AGPL-3.0 license for Daytona's core product is a significant s
   * **Workload Suitability:** Ideal for **long-running, stateful** workloads that require strong security isolation. Perfect for multi-tenant environments, untrusted code execution, and compliance-heavy workloads where container escape vulnerabilities are unacceptable.  
 * **Unique Value Proposition:** Kata Containers solves the "container vs. VM" dilemma by providing both. Organizations get the operational benefits of containers (fast startup, density, orchestration) with the security guarantees of VMs (hardware isolation, dedicated kernel). This makes it particularly valuable for production environments running untrusted workloads or requiring regulatory compliance.
 
-### **4.9. Other Notable Platforms & Cloud Development Environments (CDEs)**
+### **4.9. Tenki: Firecracker MicroVMs for AI Agents**
+
+* **Overview:** Tenki gives AI agents disposable Linux microVMs powered by Firecracker, built for agentic workflows that write and run code. Sandboxes boot in ~2 seconds with coding agents (e.g., Claude Code, Codex, opencode) preinstalled in the base image, and are billed per second. On the same substrate Tenki bundles two adjacent products — drop-in GitHub Actions **Runners** and an **AI Code Reviewer** — a "run → test → review" pipeline for agent-generated code. It ships first-party SDKs (TypeScript, Python, Go), an MCP server, and an n8n node. Tenki is a product of Luxor AI.
+* **GitHub:** [TenkiCloud](https://github.com/tenkicloud) (SDKs + integrations; the platform itself is closed-source)
+* **Website:** [tenki.cloud](https://tenki.cloud)
+* **Launch Date:** 2026 (public SDKs first shipped mid-2026).
+* **GitHub Stars:** N/A (proprietary platform; no single public core repo).
+* **License:** **Proprietary** (managed platform). The client SDKs and integrations are MIT-licensed.
+* **Hosting:**
+  * **SaaS:** Yes. A fully managed cloud service with per-second, usage-based billing for CPU and memory.
+  * **Self-Hosted:** No.
+* **Capabilities:**
+  * **Filesystem Access:** Full filesystem I/O via the SDKs (read / write / list / upload / download). Sandboxes are disposable by default (ephemeral), with **snapshots** (save + restore full VM state) and **persistent volumes** for state that must outlive a sandbox.
+  * **Network Access:** Outbound internet is opt-in per sandbox; any service running inside a sandbox can be exposed to the public internet via a generated **preview URL**.
+  * **Workload Suitability:** Suited to both **short-lived** and **long-running** workloads — a ~2s cold start and per-second billing make it cheap for ephemeral agent tasks, while pause/resume and a configurable max-duration support longer stateful sessions.
+
+### **4.10. Other Notable Platforms & Cloud Development Environments (CDEs)**
 
 While the platforms above are specialized sandboxing runtimes, the broader category of Cloud Development Environments (CDEs) also relies heavily on sandboxing technology to function. They provide a useful point of comparison.
 
