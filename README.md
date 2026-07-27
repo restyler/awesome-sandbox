@@ -260,6 +260,7 @@ This section provides a detailed, structured analysis of each major platform, ex
 ### **4.2. CreateOS: Unified AI Execution Layer**
 
 * **Overview:** CreateOS is a proprietary sandboxing platform that provides a unified AI execution layer for enterprises. It runs each workload in a Firecracker micro-VM with its own guest kernel, offering hardware-level isolation for untrusted and AI-generated code. The platform differentiates itself with pause-to-snapshot capabilities that preserve full memory and device state, fork-based branching for agent execution paths, and built-in object storage synchronization. It targets multi-agent systems with private overlay networking between sandboxes.
+* **GitHub:** [NodeOps-app/createos-sandbox-sdk](https://github.com/NodeOps-app/createos-sandbox-sdk)
 * **Website:** [createos.sh](https://createos.sh)
 * **License:** **Proprietary** platform with usage-based pricing.
 * **Hosting:**
@@ -270,7 +271,7 @@ This section provides a detailed, structured analysis of each major platform, ex
   * **Workload Suitability:** Well-suited for both **short-lived** and **long-running** workloads. The pause-to-snapshot feature allows sandboxes to auto-pause on inactivity and resume with full state intact, eliminating cold boot overhead and compute costs during idle periods. The fork capability enables branching agent execution paths, which is particularly useful for exploring multiple strategies in agentic workflows.
 * **SDK & Integration:** TypeScript SDK, command-line interface, and Model Context Protocol (MCP) support for agent-driven provisioning.
 * **Environment:** Sandboxes come pre-configured with Ubuntu, Node.js, Bun, Python, Go, and Rust.
-* **Status:** Currently in alpha with architecture validated. SOC 2, HIPAA, and GDPR certifications are on the roadmap.
+
 
 ### **4.3. Daytona: Secure & Elastic Infrastructure for AI Code**
 
