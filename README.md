@@ -233,6 +233,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**CodeSandbox** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | MicroVM & Browser | 2017 | 13.4k+ | Proprietary / OSS Parts | No | Yes | Persistent | Full | Short & Long-Running |
 | [**Gitpod** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | Containers | 2020 | 12.9k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
 | [**Coder** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | Containers / VMs | 2019 | 8.1k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
+| [**llm-sandbox** ↓](#410-llm-sandbox-a-self-hosted-library-for-llm-generated-code) | Containers (Docker/Podman/K8s) | Jul 2024 | 1.1k+ | MIT | Yes (Primary) | No | Persistent & Ephemeral | Configurable | Short & Long-Running |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -383,6 +384,25 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 * **[Gitpod](https://gitpod.io) & [Coder](https://coder.com):** These are leading open-source CDEs that focus on creating ephemeral, reproducible development environments directly from a Git repository context. Their primary goal is to solve the "works on my machine" problem by standardizing environments using configuration files like  
   .gitpod.yml or devcontainer.json.  
   * **Sandboxing Approach:** Their isolation is typically based on **containers** (e.g., Docker). However, their architectures are sophisticated. [Gitpod employs a zero-trust model](https://www.gitpod.io/docs/flex/introduction/zero-trust) with a central management plane and runners that deploy environments within a customer's own cloud infrastructure, ensuring source code never leaves the network perimeter. [Coder uses Terraform as its provisioning engine](https://coder.com/docs/admin/infrastructure/architecture), which provides immense flexibility. A Coder template can define a workspace as a Docker container, a Kubernetes pod, or even a full VM on a cloud provider, allowing administrators to choose the appropriate level of isolation for their needs. Both projects use the AGPL-3.0 license for their open-source editions and offer enterprise versions with commercial licenses.
+
+
+### **4.10. llm-sandbox: A Self-Hosted Library for LLM-Generated Code**
+
+* **Overview:** llm-sandbox differs from most entries here in that it is a *library* rather than a platform. There is no control plane and no daemon of its own: it is a `pip install` that turns container runtimes you already operate into a sandbox for LLM-generated code. A single context-managed session takes a code string and returns stdout, stderr, exit code and any generated artifacts. The same API runs over Docker, Podman or Kubernetes, so a workflow prototyped on a laptop runs unchanged on a cluster.
+* **GitHub:** [vndee/llm-sandbox](https://github.com/vndee/llm-sandbox)
+* **Website:** [vndee.github.io/llm-sandbox](https://vndee.github.io/llm-sandbox/)
+* **Launch Date:** First public release (0.1.0) in July 2024.
+* **GitHub Stars:** Approximately 1,100.
+* **License:** **MIT License**, permissive and straightforward for commercial adoption.
+* **Hosting:**
+  * **SaaS:** No. There is no hosted offering.
+  * **Self-Hosted:** Yes, exclusively. Execution happens on whatever Docker, Podman or Kubernetes environment the user already runs.
+* **Capabilities:**
+  * **Filesystem Access:** Both ephemeral and persistent. Sessions are ephemeral by default; an optional pool recycles warm containers across runs. Artifacts written inside the container, including matplotlib and ggplot2 plots, are extracted and returned as structured objects rather than lost on teardown.
+  * **Network Access:** Configurable per session, from full access to fully isolated (`network_mode="none"`), alongside read-only root filesystems, capability dropping and CPU/memory limits.
+  * **Workload Suitability:** Suits both short-lived stateless execution and longer stateful work. An interactive session type keeps a persistent IPython kernel for notebook-style sequences, and container pooling targets loops that execute code many times per task.
+  * **Languages:** Python, JavaScript, Java, C++, Go, R and Ruby, with automatic dependency installation per language.
+  * **Security Model:** A configurable policy can screen code against patterns before execution, though it is advisory — the caller checks it and decides. The enforced layer is the container runtime. Note that this is **container isolation, not VM isolation**; it inherits the threat model of the chosen backend and makes no kernel-level guarantees.
 
 ## **6\. Docker vs MicroVM for Sandboxing**
 
