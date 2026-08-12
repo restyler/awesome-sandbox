@@ -292,17 +292,17 @@ This section provides a detailed, structured analysis of each major platform, ex
 * **Website:** [daytona.io](https://daytona.io)  
 * **Launch Date:** The company was founded in 2023, and its open-source version gained significant community traction and funding in mid-2024. It went closed-source in June 2026.  
 * **GitHub Stars:** The frozen open-source repository sits at over 21,000 stars, but the actively developed product is no longer open source.  
-* **License:** **Proprietary.** Daytona's core product moved to a closed-source codebase in June 2026. The legacy public repository remains under **AGPL-3.0**, but it only reflects the state of the product before the transition and is not receiving further development.  
+* **License:** **Proprietary.** Daytona's core product moved to a closed-source codebase in June 2026. The legacy public repository is still under **AGPL-3.0**, but it only reflects the product as it was before the switch, and isn't getting further development.  
 * **Hosting:**  
   * **SaaS:** Yes. Daytona offers a managed cloud platform with a usage-based, pay-as-you-go pricing model for compute, memory, and storage resources.  
-  * **Self-Hosted:** **No longer supported.** Self-hosting was previously a core part of Daytona's offering, but since the move to closed source, there is no way to deploy a current Daytona instance on your own infrastructure. Existing self-hosted deployments are limited to the last public release and will not receive security patches.  
+  * **Self-Hosted:** No, not anymore. Self-hosting used to be a core part of Daytona's offering, but since the move to closed source, there's no way to deploy a current Daytona instance on your own infrastructure. Existing self-hosted deployments are stuck on the last public release and won't get security patches.  
 * **Capabilities:**  
   * **Filesystem Access:** Daytona provides a full, persistent filesystem within its sandboxes. A key feature is the ability to archive inactive sandboxes, which moves the entire filesystem state to cost-effective object storage for long-term preservation and later retrieval. The SDK includes a filesystem API for programmatic file operations.  
   * **Network Access:** Sandboxes are equipped with network access. They can expose services running on specific ports via a public preview link. For private sandboxes, this link is secured with an access token to ensure controlled access.  
   * **Workload Suitability:** Daytona is explicitly designed for **long-running, stateful** workloads. Features like automatically stopping inactive sandboxes and archiving them after a configurable period are tailored to optimize costs for persistent environments that are not always in active use. This makes it ideal for full-fledged development workspaces and complex, multi-step agentic tasks that require state to be preserved indefinitely.  
 * **Underlying Technology:** Daytona uses **container-based isolation** with OCI/Docker compatibility. The platform supports any OCI/Docker image for sandbox creation and achieves sub-90ms startup times through optimized container orchestration rather than microVM technology.
 
-Daytona's trajectory illustrates a broader tension in open-source sandboxing infrastructure. The project originally chose AGPL-3.0 for its core product — a strong copyleft license that requires modifications made accessible over a network to also be released under the same license, which created legal and compliance friction for large enterprises and often steered them toward a commercial enterprise license instead. In June 2026, Daytona went further and dropped open availability of its core product entirely, arguing that publishing the isolation and kernel-boundary logic of a sandbox is itself a security liability in an era where AI can be pointed at a public repository to search for exploitable flaws at scale. This contrasts sharply with **e2b** and **microsandbox**, which remain Apache-2.0-licensed and openly self-hostable, and it is a useful reminder that "open-source today" is not a durable guarantee for infrastructure you plan to depend on for self-hosting — worth weighing against a project's funding model and business incentives, not just its license file at a point in time.
+Daytona's core product was already AGPL-3.0, a copyleft license that requires modifications made accessible over a network to also be released under the same terms. That already pushed some large enterprises toward a commercial license instead. In June 2026, Daytona went further and closed the source entirely, arguing that a public sandbox implementation just hands attackers a blueprint for the kernel boundary they're trying to break. e2b and microsandbox, by contrast, are still Apache-2.0 and openly self-hostable. If you're picking infrastructure to self-host long-term, it's worth checking a project's funding model and incentives, not just its license file today.
 
 ### **4.3. microsandbox: Self-Hosted MicroVMs for Untrusted Code**
 
@@ -436,12 +436,12 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 
 ### **4.11. Docker Sandboxes: Disposable MicroVMs for AI Coding Agents**
 
-* **Overview:** Docker Sandboxes (CLI: `sbx`) runs AI coding agents, such as Claude Code, Gemini CLI, GitHub Copilot CLI, Codex, OpenCode, and Kiro, inside disposable microVMs on the developer's own machine, so an agent can install packages, edit configs, and spin up its own nested Docker containers without ever touching the host. It reached #1 on Hacker News in August 2026 (685 points, ~390 comments), making it one of the most-discussed sandboxing launches of the year precisely because Docker is putting its weight behind the category.
+* **Overview:** Docker Sandboxes (CLI: `sbx`) runs AI coding agents, such as Claude Code, Gemini CLI, GitHub Copilot CLI, Codex, OpenCode, and Kiro, inside disposable microVMs on the developer's own machine, so an agent can install packages, edit configs, and spin up its own nested Docker containers without ever touching the host.
 * **Website:** [docker.com/products/docker-sandboxes](https://www.docker.com/products/docker-sandboxes/)
 * **GitHub:** [docker/sbx-releases](https://github.com/docker/sbx-releases) (binary releases only; the CLI itself is closed-source)
 * **Launch Date:** In development through 2025 with regular updates; reached general availability in early 2026.
 * **GitHub Stars:** N/A (proprietary; no public source repository).
-* **License:** **Proprietary.** Free for individual use; **Docker AI Governance**, a paid add-on, adds org-wide policy enforcement (network rules, filesystem restrictions, MCP governance) across a team's sandboxes.
+* **License:** **Proprietary**, free for individual use. **Docker AI Governance**, a paid add-on, adds org-wide policy enforcement (network rules, filesystem restrictions, MCP governance) across a team's sandboxes.
 * **Hosting:**
   * **SaaS:** No. Docker Sandboxes is a local tool that runs on the developer's own machine, not a hosted service.
   * **Self-Hosted:** Yes, exclusively, via `sbx` (installed with `brew`, `winget`, or `apt`). Notably, it requires signing in to a Docker account even to run a fully local, offline-capable sandbox, which was the single most-criticized aspect of the launch.
@@ -454,7 +454,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 
 ### **4.12. Vercel Sandbox: Firecracker MicroVMs for Agent Workloads**
 
-* **Overview:** Vercel Sandbox is a managed, ephemeral compute primitive for running untrusted or AI-generated code, built on "Hive," Vercel's internal platform for orchestrating Firecracker microVM clusters across regions. It's positioned as the execution layer for agents that clone repos, install dependencies, and run tests, aimed squarely at teams already building on Vercel.
+* **Overview:** Vercel Sandbox is a managed, ephemeral compute primitive for running untrusted or AI-generated code, built on "Hive," Vercel's internal platform for orchestrating Firecracker microVM clusters across regions. It's pitched as the execution layer for agents that clone repos, install dependencies, and run tests, mainly for teams already building on Vercel.
 * **GitHub:** [vercel/sandbox](https://github.com/vercel/sandbox) (open-source CLI/SDK; the hosted execution platform itself is proprietary)
 * **Website:** [vercel.com/sandbox](https://vercel.com/sandbox)
 * **Launch Date:** Announced mid-2025; reached general availability on **January 30, 2026**.
@@ -491,7 +491,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 * **GitHub:** [apple/container](https://github.com/apple/container) (the user-facing CLI); [apple/containerization](https://github.com/apple/containerization) (the underlying Swift framework)
 * **Website:** [developer.apple.com](https://developer.apple.com/) (framework documentation; part of macOS 26 "Tahoe")
 * **Launch Date:** Announced **June 2025** at WWDC; open-sourced the same year.
-* **GitHub Stars:** `apple/container` has approximately 48,900 stars; `apple/containerization` has approximately 8,900 stars, reflecting substantial developer interest given Apple's backing.
+* **GitHub Stars:** `apple/container` has approximately 48,900 stars; `apple/containerization` has approximately 8,900 stars.
 * **License:** **Apache-2.0**, Apple's standard open-source license.
 * **Hosting:**
   * **SaaS:** No. This is local developer tooling for macOS, not a hosted service.
@@ -507,7 +507,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 * **GitHub:** [NVIDIA/OpenShell](https://github.com/NVIDIA/OpenShell)
 * **Website:** [docs.nvidia.com/openshell](https://docs.nvidia.com/openshell/)
 * **Launch Date:** First released **February 2026**.
-* **GitHub Stars:** Approximately 8,100, reflecting rapid adoption fueled by NVIDIA's backing and distribution reach.
+* **GitHub Stars:** Approximately 8,100, just months after its first release, helped along by NVIDIA's name and reach.
 * **License:** **Apache-2.0**, fully open-source.
 * **Hosting:**
   * **SaaS:** No. OpenShell is infrastructure software you deploy yourself.
@@ -609,7 +609,7 @@ Choosing the right sandboxing solution depends on your specific requirements. Co
 This is the most important trade-off. Your choice depends on your threat model.
 
 * **For Maximum Security:** If your application runs highly untrusted or potentially malicious code from the public internet, and you need the strongest possible isolation, choose a **microVM-based solution**. The hardware-enforced boundary from a dedicated guest kernel provides the best defense against container escape vulnerabilities.  
-  * **Recommended:** **microsandbox**, **e2b**, **Daytona** (SaaS only, see [4.2](#42-daytona-secure--elastic-infrastructure-for-ai-code)), **Vercel Sandbox**, **AWS Bedrock AgentCore**, and **Docker Sandboxes** are all built on per-session microVMs with a dedicated guest kernel.  
+  * **Recommended:** **microsandbox**, **e2b**, **Daytona** (SaaS only, see [4.2](#42-daytona-secure--elastic-infrastructure-for-ai-code)), **Vercel Sandbox**, **AWS Bedrock AgentCore**, and **Docker Sandboxes**. All of these are built on per-session microVMs with a dedicated guest kernel.  
 * **For Balanced Security and Compatibility:** If you need stronger isolation than standard containers but can't use hardware virtualization, an application kernel is a good choice. It reduces the attack surface without requiring hardware virtualization.  
   * **Recommended:** **gVisor**.  
 * **For Maximum Performance and Speed:** If your workload is well-defined, you have some trust in the code, and startup time and resource overhead are most critical (e.g., high-volume, short-lived edge functions), a language-runtime-based sandbox is most efficient.  
@@ -632,10 +632,10 @@ The nature of your workload - whether it's a one-off task or a long-running proc
 Your organization's operational model and compliance requirements will determine your hosting strategy.
 
 * **For a Managed Service (SaaS):** If you want to accelerate development and offload the operational burden of managing sandboxing infrastructure, a SaaS platform is the best choice. These platforms offer usage-based pricing and handle all the scaling, maintenance, and security of the underlying infrastructure.  
-  * **Recommended:** **e2b** and **Daytona** provide mature, feature-rich SaaS offerings. Note that **Daytona is SaaS-only as of June 2026** — see its [4.2 profile](#42-daytona-secure--elastic-infrastructure-for-ai-code) — so it no longer fits the self-hosted criteria below. **Vercel Sandbox** and **AWS Bedrock AgentCore** are also SaaS-only, and are the natural choice if you're already building on Vercel or AWS respectively.  
+  * **Recommended:** **e2b** and **Daytona** provide mature, feature-rich SaaS offerings (Daytona is SaaS-only as of June 2026, see its [4.2 profile](#42-daytona-secure--elastic-infrastructure-for-ai-code), so it no longer fits the self-hosted list below). **Vercel Sandbox** and **AWS Bedrock AgentCore** are also SaaS-only, and are the natural choice if you're already building on Vercel or AWS respectively.  
 * **For Full Control (Self-Hosted):** If you have strict data sovereignty, regulatory compliance (e.g., GDPR), or security policies that mandate running all infrastructure within your own network perimeter, a self-hosted solution is necessary.  
   * **Recommended:** **microsandbox** is self-hosted by design and is the most straightforward choice for this model.  
-    **e2b**, **Gitpod**, and **Coder** also offer robust self-hosting options, typically as part of their enterprise offerings. (**Daytona** offered this previously but no longer does — see [4.2](#42-daytona-secure--elastic-infrastructure-for-ai-code).) **Docker Sandboxes** and **NVIDIA OpenShell** are self-hosted by design for local agent sandboxing, and **Apple Containerization** fills the same role specifically on Apple Silicon Macs.
+    **e2b**, **Gitpod**, and **Coder** also offer robust self-hosting options, typically as part of their enterprise offerings (**Daytona** offered this previously but no longer does; see [4.2](#42-daytona-secure--elastic-infrastructure-for-ai-code)). **Docker Sandboxes** and **NVIDIA OpenShell** are self-hosted by design for local agent sandboxing, and **Apple Containerization** fills the same role specifically on Apple Silicon Macs.
 
 ### **Axis 4: AI/Agent-Specific vs. General-Purpose**
 
