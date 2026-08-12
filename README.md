@@ -38,6 +38,8 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.13. AWS Bedrock AgentCore: Managed Agent Runtime & Code Interpreter](#413-aws-bedrock-agentcore-managed-agent-runtime--code-interpreter)
   - [4.14. Apple Containerization: VM-Backed Containers for macOS](#414-apple-containerization-vm-backed-containers-for-macos)
   - [4.15. NVIDIA OpenShell: Policy-Governed Sandboxing for Autonomous Agents](#415-nvidia-openshell-policy-governed-sandboxing-for-autonomous-agents)
+  - [4.16. Koyeb Sandboxes: Bare-Metal MicroVMs for AI Agents](#416-koyeb-sandboxes-bare-metal-microvms-for-ai-agents)
+  - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
 - [6. Docker vs MicroVM for Sandboxing](#6-docker-vs-microvm-for-sandboxing)
 - [7. Choosing Your Sandbox: A Decision Framework](#7-choosing-your-sandbox-a-decision-framework)
   - [Axis 1: Security vs. Performance vs. Compatibility](#axis-1-security-vs-performance-vs-compatibility)
@@ -264,6 +266,8 @@ The following table provides a high-level, comparative overview of the leading c
 | [**AWS Bedrock AgentCore** ↓](#413-aws-bedrock-agentcore-managed-agent-runtime--code-interpreter) | Firecracker (MicroVM) | Oct 2025 (GA) | N/A | Proprietary | No | Yes | Ephemeral (session-scoped) | Configurable (VPC/PrivateLink) | Short & Interactive Sessions |
 | [**Apple Containerization** ↓](#414-apple-containerization-vm-backed-containers-for-macos) | MicroVMs (Virtualization.framework) | Jun 2025 | 48.9k+ | Apache-2.0 | Yes (Only) | No | Persistent | Full | Development, CI/CD |
 | [**NVIDIA OpenShell** ↓](#415-nvidia-openshell-policy-governed-sandboxing-for-autonomous-agents) | Docker/Podman/MicroVM/K8s (policy layer) | Feb 2026 | 8.1k+ | Apache-2.0 | Yes (Only) | No | Policy-Restricted | Policy-Restricted (egress allow/deny) | Long-Running Agent Fleets |
+| [**Koyeb Sandboxes** ↓](#416-koyeb-sandboxes-bare-metal-microvms-for-ai-agents) | MicroVMs (bare metal) | Nov 2025 (preview) | 2 (SDK) | Apache-2.0 (SDK) / Proprietary (platform) | No | Yes | Persistent (session-scoped) | Configurable | Short & Long-Running |
+| [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -517,6 +521,39 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Network Access:** Policy-restricted egress; unauthorized outbound connections are blocked by default rather than left to the caller to configure.
   * **Workload Suitability:** Designed for **long-running fleets** of agents on Kubernetes as much as for a single local sandbox, with the same policy model applying at either scale.
 
+### **4.16. Koyeb Sandboxes: Bare-Metal MicroVMs for AI Agents**
+
+* **Overview:** Koyeb Sandboxes are Koyeb's managed, fully isolated environments for running AI-agent code, code generation, and other dynamic workloads. Koyeb is a Paris-founded serverless and GPU cloud provider (about $8.6M raised as of its last public round); in 2026 it agreed to be folded into Mistral AI's compute platform, so its infrastructure now sits behind one of the larger foundation-model labs rather than running as a standalone startup.
+* **GitHub:** [koyeb/koyeb-sandbox-sdk-js](https://github.com/koyeb/koyeb-sandbox-sdk-js) (open-source SDK; the platform itself is proprietary)
+* **Website:** [koyeb.com](https://www.koyeb.com/)
+* **Launch Date:** Public preview on **November 19, 2025**. The underlying sandbox primitives had already been used by Koyeb customers since early 2025.
+* **GitHub Stars:** The SDK repo has 2 stars; as with other managed cloud sandbox platforms, the star count reflects the client library, not the service itself.
+* **License:** The SDK is **Apache-2.0**. The Sandboxes platform is a proprietary, usage-billed Koyeb service.
+* **Hosting:**
+  * **SaaS:** Yes, exclusively. Sandboxes run on Koyeb's own infrastructure.
+  * **Self-Hosted:** No.
+* **Underlying Technology:** MicroVMs run directly on bare-metal servers rather than on top of another provider's VMs, with cold starts as low as 250ms and automatic scale-to-zero when a sandbox is idle.
+* **Capabilities:**
+  * **Filesystem Access:** Persistent for the life of the session; files can be read, written, and managed through the Python or JavaScript SDK.
+  * **Network Access:** Configurable; ports can be exposed for both short-lived and long-running workloads.
+  * **Workload Suitability:** Covers both quick one-off code execution and longer background processes, putting it in the same category as Vercel Sandbox and AWS Bedrock AgentCore, but on Koyeb's own bare-metal fleet instead of a hyperscaler's.
+
+### **4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing**
+
+* **Overview:** Amazing Sandbox (`asb`) is a small CLI that runs a given command, package manager, or coding agent inside whatever sandboxing primitive is native to your OS: Docker by default, Seatbelt on macOS, or Bubblewrap on Linux. The goal is narrow and practical: stop a compromised npm package or an overzealous AI agent from reading your whole disk or wiping files it shouldn't touch, without asking you to learn a new platform.
+* **GitHub:** [ashishb/amazing-sandbox](https://github.com/ashishb/amazing-sandbox)
+* **Website:** [ashishb.net/programming/amazing-sandbox](https://ashishb.net/programming/amazing-sandbox/)
+* **Launch Date:** First commit in December 2025.
+* **GitHub Stars:** 165.
+* **License:** **MIT**.
+* **Hosting:**
+  * **SaaS:** No.
+  * **Self-Hosted:** Yes, exclusively. It runs as a single Go binary (`go install` or a downloaded release) on the developer's own machine.
+* **Capabilities:**
+  * **Filesystem Access:** Read-write to the current directory and any explicitly referenced files by default; `-x` drops read access to the current directory, `-r` makes referenced directories read-only.
+  * **Network Access:** Full by default; `-n` disables it for an air-gapped run, useful for linters and other tools that have no legitimate reason to reach the internet.
+  * **Workload Suitability:** Built for **short-lived, one-off invocations**, wrapping a single command, not a persistent environment. It caches config directories for Claude Code, OpenAI Codex, and Gemini CLI so those agents don't need to re-authenticate on every run, and supports Python, JS/TS, Go, Rust, Ruby, Haskell, and Zig toolchains out of the box.
+
 ## **6\. Docker vs MicroVM for Sandboxing**
 
 When evaluating sandboxing solutions, one of the most fundamental architectural decisions is choosing between container-based isolation (Docker/OCI) and microVM-based isolation. This choice significantly impacts performance, security, and operational complexity.
@@ -632,10 +669,10 @@ The nature of your workload - whether it's a one-off task or a long-running proc
 Your organization's operational model and compliance requirements will determine your hosting strategy.
 
 * **For a Managed Service (SaaS):** If you want to accelerate development and offload the operational burden of managing sandboxing infrastructure, a SaaS platform is the best choice. These platforms offer usage-based pricing and handle all the scaling, maintenance, and security of the underlying infrastructure.  
-  * **Recommended:** **e2b** and **Daytona** provide mature, feature-rich SaaS offerings (Daytona is SaaS-only as of June 2026, see its [4.2 profile](#42-daytona-secure--elastic-infrastructure-for-ai-code), so it no longer fits the self-hosted list below). **Vercel Sandbox** and **AWS Bedrock AgentCore** are also SaaS-only, and are the natural choice if you're already building on Vercel or AWS respectively.  
+  * **Recommended:** **e2b** and **Daytona** provide mature, feature-rich SaaS offerings (Daytona is SaaS-only as of June 2026, see its [4.2 profile](#42-daytona-secure--elastic-infrastructure-for-ai-code), so it no longer fits the self-hosted list below). **Vercel Sandbox**, **AWS Bedrock AgentCore**, and **Koyeb Sandboxes** are also SaaS-only, and are the natural choice if you're already building on Vercel, AWS, or Koyeb respectively.  
 * **For Full Control (Self-Hosted):** If you have strict data sovereignty, regulatory compliance (e.g., GDPR), or security policies that mandate running all infrastructure within your own network perimeter, a self-hosted solution is necessary.  
   * **Recommended:** **microsandbox** is self-hosted by design and is the most straightforward choice for this model.  
-    **e2b**, **Gitpod**, and **Coder** also offer robust self-hosting options, typically as part of their enterprise offerings (**Daytona** offered this previously but no longer does; see [4.2](#42-daytona-secure--elastic-infrastructure-for-ai-code)). **Docker Sandboxes** and **NVIDIA OpenShell** are self-hosted by design for local agent sandboxing, and **Apple Containerization** fills the same role specifically on Apple Silicon Macs.
+    **e2b**, **Gitpod**, and **Coder** also offer robust self-hosting options, typically as part of their enterprise offerings (**Daytona** offered this previously but no longer does; see [4.2](#42-daytona-secure--elastic-infrastructure-for-ai-code)). **Docker Sandboxes** and **NVIDIA OpenShell** are self-hosted by design for local agent sandboxing, **Apple Containerization** fills the same role specifically on Apple Silicon Macs, and **Amazing Sandbox** is a lightweight option when you just need to wrap a single command or CLI tool rather than run a full agent environment.
 
 ### **Axis 4: AI/Agent-Specific vs. General-Purpose**
 
