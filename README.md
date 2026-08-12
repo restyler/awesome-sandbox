@@ -543,7 +543,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 * **Capabilities:**
   * **Filesystem Access:** Persistent for the life of the session; files can be read, written, and managed through the Python or JavaScript SDK.
   * **Network Access:** Configurable; ports can be exposed for both short-lived and long-running workloads.
-  * **Workload Suitability:** Covers both quick one-off code execution and longer background processes, putting it in the same category as Vercel Sandbox and AWS Bedrock AgentCore, but on Koyeb's own bare-metal fleet instead of a hyperscaler's.
+  * **Workload Suitability:** Covers both quick one-off code execution and longer background processes. It's in the same category as Vercel Sandbox and AWS Bedrock AgentCore, but running on Koyeb's own bare-metal fleet instead of a hyperscaler's.
 
 ### **4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing**
 
@@ -580,7 +580,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 
 ### **4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy**
 
-* **Overview:** Deno Sandbox is Deno's managed service for running untrusted or AI-generated code in the cloud, announced in beta on February 3, 2026. Each sandbox is a dedicated Firecracker microVM running in Deno Deploy's own infrastructure, positioning it alongside Vercel Sandbox, Koyeb Sandboxes, and AWS Bedrock AgentCore as a hyperscaler-adjacent, hosted alternative to self-managing sandbox infrastructure.
+* **Overview:** Deno Sandbox is Deno's managed service for running untrusted or AI-generated code in the cloud, announced in beta on February 3, 2026. Each sandbox is a dedicated Firecracker microVM running in Deno Deploy's own infrastructure. It's in the same category as Vercel Sandbox, Koyeb Sandboxes, and AWS Bedrock AgentCore: a hosted alternative to running your own sandbox infrastructure, backed by a large platform rather than a smaller independent one.
 * **GitHub:** [denoland/sandbox-py](https://github.com/denoland/sandbox-py) (Python SDK; a JavaScript/TypeScript SDK is also offered, and the platform itself is proprietary)
 * **Website:** [deno.com/deploy/sandbox](https://deno.com/deploy/sandbox)
 * **Launch Date:** Announced **February 3, 2026**, currently in beta.
@@ -619,7 +619,7 @@ The two projects below implement that pattern as standalone, general-purpose too
 
 ### **5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy**
 
-* **Overview:** Agent Vault is a local forward proxy for AI agents, set via the `HTTPS_PROXY` environment variable, from Infisical, the team behind a widely used open-source secrets manager. Rather than adding another agent-specific abstraction, it operates one layer down at the HTTPS level: it terminates TLS with a locally trusted certificate authority, presents itself as the upstream service, strips whatever credential the agent attached to the plaintext request, injects the correct one, and only then opens the real connection upstream.
+* **Overview:** Agent Vault is a local forward proxy for AI agents from Infisical, the team behind a widely used open-source secrets manager. Point an agent's `HTTPS_PROXY` at it, and instead of adding another agent-specific abstraction, it works one layer down at the HTTPS level: it terminates TLS with a locally trusted certificate authority, presents itself as the upstream service, strips whatever credential the agent attached to the plaintext request, injects the correct one, and only then opens the real connection upstream.
 * **GitHub:** [Infisical/agent-vault](https://github.com/Infisical/agent-vault)
 * **Website:** [infisical.com](https://infisical.com)
 * **Launch Date:** Launched in research preview; repository history starts **March 2026**.
