@@ -40,6 +40,8 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.15. NVIDIA OpenShell: Policy-Governed Sandboxing for Autonomous Agents](#415-nvidia-openshell-policy-governed-sandboxing-for-autonomous-agents)
   - [4.16. Koyeb Sandboxes: Bare-Metal MicroVMs for AI Agents](#416-koyeb-sandboxes-bare-metal-microvms-for-ai-agents)
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
+  - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
+  - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
 - [6. Docker vs MicroVM for Sandboxing](#6-docker-vs-microvm-for-sandboxing)
 - [7. Choosing Your Sandbox: A Decision Framework](#7-choosing-your-sandbox-a-decision-framework)
   - [Axis 1: Security vs. Performance vs. Compatibility](#axis-1-security-vs-performance-vs-compatibility)
@@ -268,6 +270,8 @@ The following table provides a high-level, comparative overview of the leading c
 | [**NVIDIA OpenShell** ↓](#415-nvidia-openshell-policy-governed-sandboxing-for-autonomous-agents) | Docker/Podman/MicroVM/K8s (policy layer) | Feb 2026 | 8.1k+ | Apache-2.0 | Yes (Only) | No | Policy-Restricted | Policy-Restricted (egress allow/deny) | Long-Running Agent Fleets |
 | [**Koyeb Sandboxes** ↓](#416-koyeb-sandboxes-bare-metal-microvms-for-ai-agents) | MicroVMs (bare metal) | Nov 2025 (preview) | 2 (SDK) | Apache-2.0 (SDK) / Proprietary (platform) | No | Yes | Persistent (session-scoped) | Configurable | Short & Long-Running |
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
+| [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
+| [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -554,6 +558,40 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Network Access:** Full by default; `-n` disables it for an air-gapped run, useful for linters and other tools that have no legitimate reason to reach the internet.
   * **Workload Suitability:** Built for **short-lived, one-off invocations**, wrapping a single command, not a persistent environment. It caches config directories for Claude Code, OpenAI Codex, and Gemini CLI so those agents don't need to re-authenticate on every run, and supports Python, JS/TS, Go, Rust, Ruby, Haskell, and Zig toolchains out of the box.
 
+### **4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents**
+
+* **Overview:** nono is a local, OS-native sandbox for AI coding agents built by the team behind Sigstore. It runs directly on the developer's machine with no daemon, no container, and no VM: it wraps a process in the host kernel's own isolation primitives instead of virtualizing anything. Its defining feature is that it doesn't stop at sandboxing the agent process once. When an agent delegates to a real tool, `git`, `gh`, `curl`, `kubectl`, an MCP server, nono's broker re-sandboxes that specific call under its own policy, filesystem grants, network rules, and credentials, so a compromised `git` invocation can't inherit the agent's broader permissions.
+* **GitHub:** [nolabs-ai/nono](https://github.com/nolabs-ai/nono) (project moved to this org from `always-further`; older references may still point there)
+* **Website:** [nono.sh](https://nono.sh)
+* **Launch Date:** GitHub history under the current org starts January 2026; the project existed earlier under the `always-further` namespace before the move.
+* **GitHub Stars:** Approximately 3,630.
+* **License:** **Apache-2.0**.
+* **Hosting:**
+  * **SaaS:** No.
+  * **Self-Hosted:** Yes, exclusively. Installed via curl, Homebrew, or native OS packages (Debian, Fedora, Arch, RHEL, openSUSE, Nix), with support for macOS, Linux, and Windows via WSL2.
+* **Capabilities:**
+  * **Filesystem Access:** Scoped per profile; an agent gets read/write access to whatever paths its policy grants and nothing else. SSH keys, cloud credentials, and the rest of the disk are invisible by default.
+  * **Network Access:** Brokered through a proxy with L7 (method + path) filtering per credential. Secrets are never handed to the sandboxed process directly; the broker injects them only when a request matches an allowed endpoint, similar in spirit to the secret-placeholder approach used by Docker Sandboxes and Vercel Sandbox.
+  * **Workload Suitability:** **Short-lived, per-invocation** micro sandboxes rather than a persistent environment: a fresh sandbox spawns for each tool call and is destroyed afterward, with a sealed, Merkle-hashed audit trail left behind.
+* **Unique Value Proposition:** Most sandboxes draw one boundary around the whole agent session. nono draws a separate boundary around each tool the agent calls, so a single overly broad grant to the agent doesn't automatically extend to everything it invokes. It also ships a registry of pre-signed profiles (Sigstore-attested) for popular agents like Claude Code, Codex, and OpenCode.
+
+### **4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy**
+
+* **Overview:** Deno Sandbox is Deno's managed service for running untrusted or AI-generated code in the cloud, announced in beta on February 3, 2026. Each sandbox is a dedicated Firecracker microVM running in Deno Deploy's own infrastructure, positioning it alongside Vercel Sandbox, Koyeb Sandboxes, and AWS Bedrock AgentCore as a hyperscaler-adjacent, hosted alternative to self-managing sandbox infrastructure.
+* **GitHub:** [denoland/sandbox-py](https://github.com/denoland/sandbox-py) (Python SDK; a JavaScript/TypeScript SDK is also offered, and the platform itself is proprietary)
+* **Website:** [deno.com/deploy/sandbox](https://deno.com/deploy/sandbox)
+* **Launch Date:** Announced **February 3, 2026**, currently in beta.
+* **GitHub Stars:** The Python SDK has 6 stars; as with other managed cloud sandbox platforms, this reflects the client library rather than the service.
+* **License:** The SDK is **MIT**. The Sandbox platform itself is a proprietary, usage-billed Deno Deploy service.
+* **Hosting:**
+  * **SaaS:** Yes, exclusively, running in US and Europe regions today, with Asia planned.
+  * **Self-Hosted:** No.
+* **Underlying Technology:** Each sandbox is its own **Firecracker microVM**, the same technology behind AWS Lambda, with defaults of 2 vCPUs, 1.2 GiB memory, and 10GB disk (adjustable at creation). Boot times are under a second, with examples as fast as 93ms.
+* **Capabilities:**
+  * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
+  * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code.
+  * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
 ## **6\. Docker vs MicroVM for Sandboxing**
 
 When evaluating sandboxing solutions, one of the most fundamental architectural decisions is choosing between container-based isolation (Docker/OCI) and microVM-based isolation. This choice significantly impacts performance, security, and operational complexity.
@@ -669,10 +707,10 @@ The nature of your workload - whether it's a one-off task or a long-running proc
 Your organization's operational model and compliance requirements will determine your hosting strategy.
 
 * **For a Managed Service (SaaS):** If you want to accelerate development and offload the operational burden of managing sandboxing infrastructure, a SaaS platform is the best choice. These platforms offer usage-based pricing and handle all the scaling, maintenance, and security of the underlying infrastructure.  
-  * **Recommended:** **e2b** and **Daytona** provide mature, feature-rich SaaS offerings (Daytona is SaaS-only as of June 2026, see its [4.2 profile](#42-daytona-secure--elastic-infrastructure-for-ai-code), so it no longer fits the self-hosted list below). **Vercel Sandbox**, **AWS Bedrock AgentCore**, and **Koyeb Sandboxes** are also SaaS-only, and are the natural choice if you're already building on Vercel, AWS, or Koyeb respectively.  
+  * **Recommended:** **e2b** and **Daytona** provide mature, feature-rich SaaS offerings (Daytona is SaaS-only as of June 2026, see its [4.2 profile](#42-daytona-secure--elastic-infrastructure-for-ai-code), so it no longer fits the self-hosted list below). **Vercel Sandbox**, **AWS Bedrock AgentCore**, **Koyeb Sandboxes**, and **Deno Sandbox** are also SaaS-only, and are the natural choice if you're already building on Vercel, AWS, Koyeb, or Deno Deploy respectively.  
 * **For Full Control (Self-Hosted):** If you have strict data sovereignty, regulatory compliance (e.g., GDPR), or security policies that mandate running all infrastructure within your own network perimeter, a self-hosted solution is necessary.  
   * **Recommended:** **microsandbox** is self-hosted by design and is the most straightforward choice for this model.  
-    **e2b**, **Gitpod**, and **Coder** also offer robust self-hosting options, typically as part of their enterprise offerings (**Daytona** offered this previously but no longer does; see [4.2](#42-daytona-secure--elastic-infrastructure-for-ai-code)). **Docker Sandboxes** and **NVIDIA OpenShell** are self-hosted by design for local agent sandboxing, **Apple Containerization** fills the same role specifically on Apple Silicon Macs, and **Amazing Sandbox** is a lightweight option when you just need to wrap a single command or CLI tool rather than run a full agent environment.
+    **e2b**, **Gitpod**, and **Coder** also offer robust self-hosting options, typically as part of their enterprise offerings (**Daytona** offered this previously but no longer does; see [4.2](#42-daytona-secure--elastic-infrastructure-for-ai-code)). **Docker Sandboxes** and **NVIDIA OpenShell** are self-hosted by design for local agent sandboxing, **Apple Containerization** fills the same role specifically on Apple Silicon Macs, and **Amazing Sandbox** and **nono** are both lightweight options for wrapping individual commands or tool calls rather than running a full persistent agent environment, with **nono** additionally sandboxing each tool the agent delegates to, not just the agent process itself.
 
 ### **Axis 4: AI/Agent-Specific vs. General-Purpose**
 
