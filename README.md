@@ -42,6 +42,9 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+- [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
+  - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
+  - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
 - [6. Docker vs MicroVM for Sandboxing](#6-docker-vs-microvm-for-sandboxing)
 - [7. Choosing Your Sandbox: A Decision Framework](#7-choosing-your-sandbox-a-decision-framework)
   - [Axis 1: Security vs. Performance vs. Compatibility](#axis-1-security-vs-performance-vs-compatibility)
@@ -571,7 +574,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Self-Hosted:** Yes, exclusively. Installed via curl, Homebrew, or native OS packages (Debian, Fedora, Arch, RHEL, openSUSE, Nix), with support for macOS, Linux, and Windows via WSL2.
 * **Capabilities:**
   * **Filesystem Access:** Scoped per profile; an agent gets read/write access to whatever paths its policy grants and nothing else. SSH keys, cloud credentials, and the rest of the disk are invisible by default.
-  * **Network Access:** Brokered through a proxy with L7 (method + path) filtering per credential. Secrets are never handed to the sandboxed process directly; the broker injects them only when a request matches an allowed endpoint, similar in spirit to the secret-placeholder approach used by Docker Sandboxes and Vercel Sandbox.
+  * **Network Access:** Brokered through a proxy with L7 (method + path) filtering per credential. Secrets are never handed to the sandboxed process directly; the broker injects them only when a request matches an allowed endpoint, the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), built directly into nono rather than run as a separate tool.
   * **Workload Suitability:** **Short-lived, per-invocation** micro sandboxes rather than a persistent environment: a fresh sandbox spawns for each tool call and is destroyed afterward, with a sealed, Merkle-hashed audit trail left behind.
 * **Unique Value Proposition:** Most sandboxes draw one boundary around the whole agent session. nono draws a separate boundary around each tool the agent calls, so a single overly broad grant to the agent doesn't automatically extend to everything it invokes. It also ships a registry of pre-signed profiles (Sigstore-attested) for popular agents like Claude Code, Codex, and OpenCode.
 
@@ -589,8 +592,46 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 * **Underlying Technology:** Each sandbox is its own **Firecracker microVM**, the same technology behind AWS Lambda, with defaults of 2 vCPUs, 1.2 GiB memory, and 10GB disk (adjustable at creation). Boot times are under a second, with examples as fast as 93ms.
 * **Capabilities:**
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
-  * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code.
+  * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
+
+A sandbox stops an agent from touching your filesystem or process tree, but it doesn't answer a separate question: how does that agent call an authenticated API without ever holding the actual API key? Several platforms above, [**Docker Sandboxes** ↓](#411-docker-sandboxes-disposable-microvms-for-ai-coding-agents), [**Vercel Sandbox** ↓](#412-vercel-sandbox-firecracker-microvms-for-agent-workloads), [**AWS Bedrock AgentCore** ↓](#413-aws-bedrock-agentcore-managed-agent-runtime--code-interpreter), [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents), and [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy), all answer it the same way: route outbound traffic through a proxy, give the sandboxed code a placeholder token instead of the real credential, and have the proxy swap in the real value only when a request matches an allowed destination. If the sandbox is compromised, whatever it exfiltrates is a token that's worthless outside the proxy.
+
+The two projects below implement that pattern as standalone, general-purpose tools rather than as a feature bundled into one specific sandbox platform, so they can sit in front of any sandbox, container, or CI job you already run.
+
+### **5.1. iron-proxy: An Egress Firewall for Untrusted Workloads**
+
+* **Overview:** iron-proxy is a MITM egress proxy with a built-in DNS server that sits between an untrusted workload (a CI job, an AI coding agent, a sandboxed container) and the internet. It enforces default-deny at the network boundary: every outbound request is blocked unless the destination matches an explicit allowlist. Workloads use proxy tokens instead of real secrets, and iron-proxy swaps in the actual credential at egress, so a compromised workload can only exfiltrate a token that does nothing outside the proxy.
+* **GitHub:** [paradigmxyz/iron-proxy](https://github.com/paradigmxyz/iron-proxy) (branded `iron-proxy` / iron.sh; built by Paradigm)
+* **Website:** [docs.iron.sh](https://docs.iron.sh)
+* **Launch Date:** First released April 2026.
+* **GitHub Stars:** Approximately 600, with commits as recently as this month.
+* **License:** **Apache-2.0**.
+* **Hosting:**
+  * **SaaS:** No.
+  * **Self-Hosted:** Yes, exclusively. Ships as a single binary with a single YAML config, plus a Docker image.
+* **Capabilities:**
+  * **Filesystem Access:** Not applicable; iron-proxy only mediates network traffic, it doesn't sandbox a filesystem itself.
+  * **Network Access:** Default-deny egress by domain/CIDR allowlist, with an upstream IP deny list that blocks allowlisted hostnames from resolving to cloud metadata endpoints or loopback (closing an SSRF/DNS-rebinding gap). Also proxies WebSocket and Server-Sent Events connections, and includes an optional PostgreSQL MITM listener that enforces per-tenant `SET ROLE` isolation over a shared service-account connection.
+  * **Workload Suitability:** Designed to run alongside CI pipelines, GitHub Actions, and AI coding agents (Claude Code, Cursor, Codex), logging a structured, per-request audit trail of what was allowed, blocked, and swapped.
+
+### **5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy**
+
+* **Overview:** Agent Vault is a local forward proxy for AI agents, set via the `HTTPS_PROXY` environment variable, from Infisical, the team behind a widely used open-source secrets manager. Rather than adding another agent-specific abstraction, it operates one layer down at the HTTPS level: it terminates TLS with a locally trusted certificate authority, presents itself as the upstream service, strips whatever credential the agent attached to the plaintext request, injects the correct one, and only then opens the real connection upstream.
+* **GitHub:** [Infisical/agent-vault](https://github.com/Infisical/agent-vault)
+* **Website:** [infisical.com](https://infisical.com)
+* **Launch Date:** Launched in research preview; repository history starts **March 2026**.
+* **GitHub Stars:** Approximately 2,060, with commits as recently as this month.
+* **License:** Source-available: MIT for the core, with an enterprise-licensed `ee/` subset, the same split Infisical uses on its main platform.
+* **Hosting:**
+  * **SaaS:** No.
+  * **Self-Hosted:** Yes, exclusively, running as a local sidecar next to the agent it's protecting.
+* **Capabilities:**
+  * **Filesystem Access:** Not applicable; it's a network proxy, not a filesystem sandbox.
+  * **Network Access:** All HTTPS traffic from the agent passes through the proxy by design (that's the entire mechanism); credential swapping happens per matched request rather than per allowlisted domain.
+  * **Workload Suitability:** Built for agent harnesses specifically, with support called out for Claude Code, OpenClaw, Hermes, and custom agents, rather than being a general CI/workload egress tool the way iron-proxy is.
 
 ## **6\. Docker vs MicroVM for Sandboxing**
 
