@@ -32,6 +32,12 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.7. Fly.io: Modern Application Hosting with MicroVMs](#47-flyio-modern-application-hosting-with-microvms)
   - [4.8. Kata Containers: Secure Container Runtime](#48-kata-containers-secure-container-runtime)
   - [4.9. Other Notable Platforms & Cloud Development Environments (CDEs)](#49-other-notable-platforms--cloud-development-environments-cdes)
+  - [4.10. llm-sandbox: A Self-Hosted Library for LLM-Generated Code](#410-llm-sandbox-a-self-hosted-library-for-llm-generated-code)
+  - [4.11. Docker Sandboxes: Disposable MicroVMs for AI Coding Agents](#411-docker-sandboxes-disposable-microvms-for-ai-coding-agents)
+  - [4.12. Vercel Sandbox: Firecracker MicroVMs for Agent Workloads](#412-vercel-sandbox-firecracker-microvms-for-agent-workloads)
+  - [4.13. AWS Bedrock AgentCore: Managed Agent Runtime & Code Interpreter](#413-aws-bedrock-agentcore-managed-agent-runtime--code-interpreter)
+  - [4.14. Apple Containerization: VM-Backed Containers for macOS](#414-apple-containerization-vm-backed-containers-for-macos)
+  - [4.15. NVIDIA OpenShell: Policy-Governed Sandboxing for Autonomous Agents](#415-nvidia-openshell-policy-governed-sandboxing-for-autonomous-agents)
 - [6. Docker vs MicroVM for Sandboxing](#6-docker-vs-microvm-for-sandboxing)
 - [7. Choosing Your Sandbox: A Decision Framework](#7-choosing-your-sandbox-a-decision-framework)
   - [Axis 1: Security vs. Performance vs. Compatibility](#axis-1-security-vs-performance-vs-compatibility)
@@ -95,6 +101,8 @@ Developed and open-sourced by Amazon Web Services (AWS), [Firecracker](https://f
 * **Adoption:** This technology is the foundation for many major platforms:
   - [**e2b** ↓](#41-e2b-the-ai-agent-sandbox-runtime) - leverages Firecracker for secure, fast-starting sandboxes for AI agents
   - [**Fly.io** ↓](#47-flyio-modern-application-hosting-with-microvms) - uses Firecracker microVMs for modern application hosting
+  - [**Vercel Sandbox** ↓](#412-vercel-sandbox-firecracker-microvms-for-agent-workloads) - runs untrusted/AI-generated code in Firecracker microVMs across Vercel's regional infrastructure
+  - [**AWS Bedrock AgentCore** ↓](#413-aws-bedrock-agentcore-managed-agent-runtime--code-interpreter) - provisions a dedicated Firecracker microVM per agent session for its Code Interpreter and Runtime tools
   - **AWS Lambda** - Amazon's serverless computing service runs on Firecracker
   - **AWS Fargate** - Amazon's container hosting service uses Firecracker for isolation
 
@@ -251,6 +259,11 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Gitpod** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | Containers | 2020 | 12.9k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
 | [**Coder** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) | Containers / VMs | 2019 | 8.1k+ | AGPL-3.0 | Yes | Yes | Persistent | Full | Long-Running & Stateful |
 | [**llm-sandbox** ↓](#410-llm-sandbox-a-self-hosted-library-for-llm-generated-code) | Containers (Docker/Podman/K8s) | Jul 2024 | 1.1k+ | MIT | Yes (Primary) | No | Persistent & Ephemeral | Configurable | Short & Long-Running |
+| [**Docker Sandboxes** ↓](#411-docker-sandboxes-disposable-microvms-for-ai-coding-agents) | MicroVMs (custom VMM) | 2026 | N/A | Proprietary | Yes (Only) | No | Ephemeral (configurable mounts) | Configurable + secret proxy | Short-Running (agent sessions) |
+| [**Vercel Sandbox** ↓](#412-vercel-sandbox-firecracker-microvms-for-agent-workloads) | Firecracker (MicroVM) | Jan 2026 (GA) | 174 (SDK) | Apache-2.0 (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Full | Short-Running |
+| [**AWS Bedrock AgentCore** ↓](#413-aws-bedrock-agentcore-managed-agent-runtime--code-interpreter) | Firecracker (MicroVM) | Oct 2025 (GA) | N/A | Proprietary | No | Yes | Ephemeral (session-scoped) | Configurable (VPC/PrivateLink) | Short & Interactive Sessions |
+| [**Apple Containerization** ↓](#414-apple-containerization-vm-backed-containers-for-macos) | MicroVMs (Virtualization.framework) | Jun 2025 | 48.9k+ | Apache-2.0 | Yes (Only) | No | Persistent | Full | Development, CI/CD |
+| [**NVIDIA OpenShell** ↓](#415-nvidia-openshell-policy-governed-sandboxing-for-autonomous-agents) | Docker/Podman/MicroVM/K8s (policy layer) | Feb 2026 | 8.1k+ | Apache-2.0 | Yes (Only) | No | Policy-Restricted | Policy-Restricted (egress allow/deny) | Long-Running Agent Fleets |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -421,6 +434,89 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Languages:** Python, JavaScript, Java, C++, Go, R and Ruby, with automatic dependency installation per language.
   * **Security Model:** A configurable policy can screen code against patterns before execution, though it is advisory — the caller checks it and decides. The enforced layer is the container runtime. Note that this is **container isolation, not VM isolation**; it inherits the threat model of the chosen backend and makes no kernel-level guarantees.
 
+### **4.11. Docker Sandboxes: Disposable MicroVMs for AI Coding Agents**
+
+* **Overview:** Docker Sandboxes (CLI: `sbx`) runs AI coding agents, such as Claude Code, Gemini CLI, GitHub Copilot CLI, Codex, OpenCode, and Kiro, inside disposable microVMs on the developer's own machine, so an agent can install packages, edit configs, and spin up its own nested Docker containers without ever touching the host. It reached #1 on Hacker News in August 2026 (685 points, ~390 comments), making it one of the most-discussed sandboxing launches of the year precisely because Docker is putting its weight behind the category.
+* **Website:** [docker.com/products/docker-sandboxes](https://www.docker.com/products/docker-sandboxes/)
+* **GitHub:** [docker/sbx-releases](https://github.com/docker/sbx-releases) (binary releases only; the CLI itself is closed-source)
+* **Launch Date:** In development through 2025 with regular updates; reached general availability in early 2026.
+* **GitHub Stars:** N/A (proprietary; no public source repository).
+* **License:** **Proprietary.** Free for individual use; **Docker AI Governance**, a paid add-on, adds org-wide policy enforcement (network rules, filesystem restrictions, MCP governance) across a team's sandboxes.
+* **Hosting:**
+  * **SaaS:** No. Docker Sandboxes is a local tool that runs on the developer's own machine, not a hosted service.
+  * **Self-Hosted:** Yes, exclusively, via `sbx` (installed with `brew`, `winget`, or `apt`). Notably, it requires signing in to a Docker account even to run a fully local, offline-capable sandbox, which was the single most-criticized aspect of the launch.
+* **Underlying Technology:** Rather than reuse Firecracker (Linux/KVM-only) or shim it onto other platforms, Docker built its own VMM that talks directly to each OS's native hypervisor, Hypervisor.framework on macOS, Windows Hypervisor Platform on Windows, and KVM on Linux, so the same sandbox model works cross-platform without a Linux-first tool bolted onto it. Each agent session boots into its own microVM with a dedicated kernel.
+* **Capabilities:**
+  * **Filesystem Access:** Only the project workspace is mounted by default; additional mounts and setup steps are defined via "Kits" (YAML configs), which some early users found limiting compared to arbitrary volume mounts.
+  * **Network Access:** Configurable per sandbox. Secrets are stored in the OS keychain and injected as auth headers by a network proxy only when the destination hostname matches, so the agent process itself never holds a usable credential. An MCP Gateway exposes a single endpoint to the sandbox, keeping OAuth tokens on the host.
+  * **Workload Suitability:** Built for **short-lived, disposable** agent sessions rather than long-running persistent environments, one sandbox per coding task, torn down when it's done.
+* **Reception:** Commenters praised the cross-platform native-hypervisor architecture but were sharply critical of the mandatory account login for a purely local tool, and several pointed to open-source alternatives without that requirement, including [**NVIDIA OpenShell** ↓](#415-nvidia-openshell-policy-governed-sandboxing-for-autonomous-agents) and [**Incus** ↓](#incus-system-containers) paired with agent CLIs.
+
+### **4.12. Vercel Sandbox: Firecracker MicroVMs for Agent Workloads**
+
+* **Overview:** Vercel Sandbox is a managed, ephemeral compute primitive for running untrusted or AI-generated code, built on "Hive," Vercel's internal platform for orchestrating Firecracker microVM clusters across regions. It's positioned as the execution layer for agents that clone repos, install dependencies, and run tests, aimed squarely at teams already building on Vercel.
+* **GitHub:** [vercel/sandbox](https://github.com/vercel/sandbox) (open-source CLI/SDK; the hosted execution platform itself is proprietary)
+* **Website:** [vercel.com/sandbox](https://vercel.com/sandbox)
+* **Launch Date:** Announced mid-2025; reached general availability on **January 30, 2026**.
+* **GitHub Stars:** The SDK/CLI repository has approximately 174 stars; as with other major-cloud sandbox offerings, the star count reflects the client library rather than the managed platform itself.
+* **License:** The SDK is **Apache-2.0**. The hosted Sandbox platform is a proprietary, usage-billed Vercel service.
+* **Hosting:**
+  * **SaaS:** Yes. This is the only way to run it; Sandbox executes exclusively on Vercel's infrastructure.
+  * **Self-Hosted:** No.
+* **Capabilities:**
+  * **Filesystem Access:** Ephemeral. Each sandbox is a full Linux microVM with its own filesystem, process space, sudo access, and package managers, torn down at the end of the task.
+  * **Network Access:** Full outbound access per sandbox.
+  * **Workload Suitability:** **Short-running** by design; billing is active-CPU-only, so cost accrues only while code is actively executing, not while the sandbox sits idle. This makes it better suited to one-off agent tasks than to long-lived, stateful development sessions.
+
+### **4.13. AWS Bedrock AgentCore: Managed Agent Runtime & Code Interpreter**
+
+* **Overview:** Amazon Bedrock AgentCore is AWS's managed platform for building, deploying, and operating AI agents "at scale," largely framework- and model-agnostic. Two of its built-in tools are directly relevant here: **Code Interpreter**, which gives an agent a secure sandbox to execute code across multiple languages, and **Runtime**, which now supports interactive shell sessions with state (environment variables, working directory, running processes) that persists for the life of the session.
+* **Website:** [aws.amazon.com/bedrock/agentcore](https://aws.amazon.com/bedrock/agentcore/)
+* **GitHub:** [aws/bedrock-agentcore-sdk-python](https://github.com/aws/bedrock-agentcore-sdk-python) (open-source SDK; the managed service itself is proprietary)
+* **Launch Date:** Preview on **July 16, 2025**; general availability on **October 13, 2025**.
+* **GitHub Stars:** The Python SDK has approximately 750 stars; the managed service has no public star count.
+* **License:** SDKs are **Apache-2.0**. The AgentCore service is a proprietary, usage-billed AWS offering.
+* **Hosting:**
+  * **SaaS:** Yes, exclusively. AgentCore is a fully managed AWS service; September 2025 updates added VPC connectivity and AWS PrivateLink for private network access to sandboxes.
+  * **Self-Hosted:** No.
+* **Underlying Technology:** Each Code Interpreter or Browser session is a strict one-session-one-microVM isolation model, provisioning a dedicated **Firecracker** microVM per session (the same technology underlying AWS Lambda), with no execution state, filesystem artifacts, or memory contents persisting between sessions.
+* **Capabilities:**
+  * **Filesystem Access:** Ephemeral and session-scoped by default; nothing survives past the session's teardown.
+  * **Network Access:** Configurable, including private connectivity via VPC/PrivateLink for enterprise network requirements.
+  * **Workload Suitability:** Suited to both quick, one-shot code execution (Code Interpreter) and longer **interactive** agent sessions (Runtime's persistent shell), though state does not survive past a given session's lifetime.
+
+### **4.14. Apple Containerization: VM-Backed Containers for macOS**
+
+* **Overview:** Unveiled at WWDC 2025, Apple's Containerization framework (and its `container` CLI) runs OCI-compliant Linux container images natively on Apple Silicon Macs, but instead of one shared Linux VM hosting all containers (the model most Docker Desktop-on-Mac setups use), each container gets its **own** lightweight, purpose-built Linux VM via macOS's Virtualization framework. It's a general-purpose containerization tool rather than an AI-agent-specific product, but it's increasingly used as the isolation substrate for running coding agents on the Mac (community projects like `sandboxy` build directly on it).
+* **GitHub:** [apple/container](https://github.com/apple/container) (the user-facing CLI); [apple/containerization](https://github.com/apple/containerization) (the underlying Swift framework)
+* **Website:** [developer.apple.com](https://developer.apple.com/) (framework documentation; part of macOS 26 "Tahoe")
+* **Launch Date:** Announced **June 2025** at WWDC; open-sourced the same year.
+* **GitHub Stars:** `apple/container` has approximately 48,900 stars; `apple/containerization` has approximately 8,900 stars, reflecting substantial developer interest given Apple's backing.
+* **License:** **Apache-2.0**, Apple's standard open-source license.
+* **Hosting:**
+  * **SaaS:** No. This is local developer tooling for macOS, not a hosted service.
+  * **Self-Hosted:** Yes, exclusively, and only on Apple Silicon Macs.
+* **Capabilities:**
+  * **Filesystem Access:** Persistent, standard OCI volume semantics per container.
+  * **Network Access:** Full, with per-container network namespaces.
+  * **Workload Suitability:** General-purpose container workloads on macOS, development environments, and CI/CD, anywhere a per-container dedicated kernel is preferable to a single shared Linux VM.
+
+### **4.15. NVIDIA OpenShell: Policy-Governed Sandboxing for Autonomous Agents**
+
+* **Overview:** OpenShell is NVIDIA's open-source runtime for sandboxing autonomous AI agents, enforcing declarative YAML policies across four layers: filesystem (restrict reads/writes to allowed paths), network (block unauthorized outbound connections), process (block privilege escalation and dangerous syscalls), and inference (a policy layer over the agent's own model calls). It's backend-agnostic, running on Docker, Podman, microVMs, or Kubernetes, and on Kubernetes it defines a `Sandbox` custom resource that a controller reconciles into scheduled pods, built on the Kubernetes SIG Agent Sandbox project.
+* **GitHub:** [NVIDIA/OpenShell](https://github.com/NVIDIA/OpenShell)
+* **Website:** [docs.nvidia.com/openshell](https://docs.nvidia.com/openshell/)
+* **Launch Date:** First released **February 2026**.
+* **GitHub Stars:** Approximately 8,100, reflecting rapid adoption fueled by NVIDIA's backing and distribution reach.
+* **License:** **Apache-2.0**, fully open-source.
+* **Hosting:**
+  * **SaaS:** No. OpenShell is infrastructure software you deploy yourself.
+  * **Self-Hosted:** Yes, exclusively, on whatever Docker, Podman, microVM, or Kubernetes infrastructure you already run. The Kubernetes Helm chart is explicitly marked experimental and not for production use yet.
+* **Capabilities:**
+  * **Filesystem Access:** Policy-restricted, allow/deny lists per sandbox rather than an all-or-nothing mount.
+  * **Network Access:** Policy-restricted egress; unauthorized outbound connections are blocked by default rather than left to the caller to configure.
+  * **Workload Suitability:** Designed for **long-running fleets** of agents on Kubernetes as much as for a single local sandbox, with the same policy model applying at either scale.
+
 ## **6\. Docker vs MicroVM for Sandboxing**
 
 When evaluating sandboxing solutions, one of the most fundamental architectural decisions is choosing between container-based isolation (Docker/OCI) and microVM-based isolation. This choice significantly impacts performance, security, and operational complexity.
@@ -513,7 +609,7 @@ Choosing the right sandboxing solution depends on your specific requirements. Co
 This is the most important trade-off. Your choice depends on your threat model.
 
 * **For Maximum Security:** If your application runs highly untrusted or potentially malicious code from the public internet, and you need the strongest possible isolation, choose a **microVM-based solution**. The hardware-enforced boundary from a dedicated guest kernel provides the best defense against container escape vulnerabilities.  
-  * **Recommended:** **microsandbox**, **e2b**, **Daytona**.  
+  * **Recommended:** **microsandbox**, **e2b**, **Daytona** (SaaS only, see [4.2](#42-daytona-secure--elastic-infrastructure-for-ai-code)), **Vercel Sandbox**, **AWS Bedrock AgentCore**, and **Docker Sandboxes** are all built on per-session microVMs with a dedicated guest kernel.  
 * **For Balanced Security and Compatibility:** If you need stronger isolation than standard containers but can't use hardware virtualization, an application kernel is a good choice. It reduces the attack surface without requiring hardware virtualization.  
   * **Recommended:** **gVisor**.  
 * **For Maximum Performance and Speed:** If your workload is well-defined, you have some trust in the code, and startup time and resource overhead are most critical (e.g., high-volume, short-lived edge functions), a language-runtime-based sandbox is most efficient.  
@@ -526,6 +622,7 @@ The nature of your workload - whether it's a one-off task or a long-running proc
 * **For Stateless/Ephemeral Tasks:** If you need to run quick, isolated tasks that don't require preserved state (e.g., grading code submissions, data transformations), most solutions work. However, those optimized for fast, ephemeral execution are better.  
   * **Recommended:** **microsandbox** in its temporary mode (msx) is explicitly designed for this.  
     **e2b**'s fast startup also makes it a strong contender.  
+    **Vercel Sandbox** and **AWS Bedrock AgentCore**'s Code Interpreter are both purpose-built for one-shot, torn-down-after-use execution, and **Docker Sandboxes** targets one disposable sandbox per agent task rather than a persistent environment.  
 * **For Stateful/Long-Running Processes:** If your use case requires a persistent environment where the filesystem can be modified, dependencies can be installed, and state is preserved across multiple interactions (e.g., an interactive AI coding assistant, a full development workspace, a multi-step agent), you need a platform with robust persistence features.  
   * **Recommended:** **Daytona**, **e2b** (Pro plan), and **microsandbox** (project mode) are all explicitly designed to support long-running, stateful workloads. CDEs like  
     **Gitpod** and **Coder** also excel at this.
@@ -535,20 +632,20 @@ The nature of your workload - whether it's a one-off task or a long-running proc
 Your organization's operational model and compliance requirements will determine your hosting strategy.
 
 * **For a Managed Service (SaaS):** If you want to accelerate development and offload the operational burden of managing sandboxing infrastructure, a SaaS platform is the best choice. These platforms offer usage-based pricing and handle all the scaling, maintenance, and security of the underlying infrastructure.  
-  * **Recommended:** **e2b** and **Daytona** provide mature, feature-rich SaaS offerings. Note that **Daytona is SaaS-only as of June 2026** — see its [4.2 profile](#42-daytona-secure--elastic-infrastructure-for-ai-code) — so it no longer fits the self-hosted criteria below.  
+  * **Recommended:** **e2b** and **Daytona** provide mature, feature-rich SaaS offerings. Note that **Daytona is SaaS-only as of June 2026** — see its [4.2 profile](#42-daytona-secure--elastic-infrastructure-for-ai-code) — so it no longer fits the self-hosted criteria below. **Vercel Sandbox** and **AWS Bedrock AgentCore** are also SaaS-only, and are the natural choice if you're already building on Vercel or AWS respectively.  
 * **For Full Control (Self-Hosted):** If you have strict data sovereignty, regulatory compliance (e.g., GDPR), or security policies that mandate running all infrastructure within your own network perimeter, a self-hosted solution is necessary.  
   * **Recommended:** **microsandbox** is self-hosted by design and is the most straightforward choice for this model.  
-    **e2b**, **Gitpod**, and **Coder** also offer robust self-hosting options, typically as part of their enterprise offerings. (**Daytona** offered this previously but no longer does — see [4.2](#42-daytona-secure--elastic-infrastructure-for-ai-code).)
+    **e2b**, **Gitpod**, and **Coder** also offer robust self-hosting options, typically as part of their enterprise offerings. (**Daytona** offered this previously but no longer does — see [4.2](#42-daytona-secure--elastic-infrastructure-for-ai-code).) **Docker Sandboxes** and **NVIDIA OpenShell** are self-hosted by design for local agent sandboxing, and **Apple Containerization** fills the same role specifically on Apple Silicon Macs.
 
 ### **Axis 4: AI/Agent-Specific vs. General-Purpose**
 
 Finally, consider whether you need a tool tailored for a specific domain or a more general-purpose platform.
 
 * **For AI-Centric Workflows:** If you are building AI agents, code interpreters, or other LLM-powered applications, choosing a platform that is explicitly optimized for this domain can provide significant advantages. Their SDKs and features are often designed to solve common problems in agentic development.  
-  * **Recommended:** **e2b** and **Daytona** are heavily focused on the AI and agent use case.  
+  * **Recommended:** **e2b** and **Daytona** are heavily focused on the AI and agent use case. Among the newer entrants, **Docker Sandboxes** and **Vercel Sandbox** are both purpose-built for coding-agent workloads, **AWS Bedrock AgentCore** targets agents within the broader AWS agent-platform stack, and **NVIDIA OpenShell** adds policy-governed sandboxing specifically for autonomous agent fleets.  
 * **For General-Purpose Execution/Development:** If your needs are broader, such as providing general-purpose development environments or a secure runtime for a variety of applications, a more general platform may be a better fit.  
   * **Recommended:** **microsandbox** is a powerful, general-purpose secure execution engine.  
-    **Coder** and **Gitpod** are leading general-purpose Cloud Development Environments.
+    **Coder** and **Gitpod** are leading general-purpose Cloud Development Environments. **Apple Containerization** is the general-purpose choice for VM-backed containers on macOS specifically.
 
 ## **8\. Contributing**
 
