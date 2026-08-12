@@ -20,6 +20,7 @@ This document provides a comprehensive, curated list and analysis of modern code
     - [V8 Isolates](#v8-isolates)
   - [2.4. Containerization: Namespace-Based Isolation](#24-containerization-namespace-based-isolation)
     - [Docker/OCI Containers](#dockeroci-containers)
+    - [Incus System Containers](#incus-system-containers)
 - [3. Feature Matrix: At-a-Glance Comparison](#3-feature-matrix-at-a-glance-comparison)
 - [4. In-Depth Platform Profiles](#4-in-depth-platform-profiles)
   - [4.1. e2b: The AI Agent Sandbox Runtime](#41-e2b-the-ai-agent-sandbox-runtime)
@@ -64,6 +65,7 @@ The following table provides a comparative overview of the core sandboxing techn
 | [**gVisor** ↓](#gvisor) | Application Kernel | ~100ms | Medium | Any Linux host | High (Linux API subset) | Multi-tenant containers, cloud services |
 | [**nsjail** ↓](#nsjail) | Process-Level | ~50ms | Very Low | Any Linux host | High (filtered syscalls) | Code execution, long-running processes |
 | [**Docker/OCI** ↓](#dockeroci-containers) | Namespace-Level | ~10-50ms | Very Low | Any Linux host | Full Linux | Development, CI/CD, application deployment |
+| [**Incus** ↓](#incus-system-containers) | System Container / QEMU VM | ~1-3s (containers), ~3-10s (VMs) | Low (containers), Medium (VMs) | Any Linux host (containers) or KVM/QEMU (VMs) | Full Linux (full init system, dedicated kernel in VM mode) | AI agent sandboxing, development environments, multi-tenant isolation |
 | [**WebAssembly** ↓](#webassembly-wasm) | Runtime-Level | ~10ms | Very Low | Any platform | Limited (WASM modules) | Edge computing, plugin systems |
 | [**V8 Isolates** ↓](#v8-isolates) | Runtime-Level | ~1ms | Very Low | Any platform | JavaScript only | Edge functions, serverless JavaScript |
 
@@ -215,6 +217,21 @@ Containerization represents the most widely adopted approach to application isol
   - [**Coder** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development environments
   - **Kubernetes** - the foundation of modern container orchestration
   - **Docker Hub** - the largest container registry with billions of downloads
+
+#### **Incus System Containers**
+
+* **GitHub:** [lxc/incus](https://github.com/lxc/incus)
+* **Website:** [linuxcontainers.org/incus](https://linuxcontainers.org/incus/)
+
+[Incus](https://linuxcontainers.org/incus/) is a system container and virtual machine manager, maintained as a community fork of Canonical's LXD by many of the same people who originally created LXD. Unlike Docker's application containers (which isolate single processes), Incus system containers run a complete operating system with a full init system, making them behave like lightweight virtual machines while sharing the host kernel.
+
+* **Mechanism:** Incus operates in two distinct modes. System containers use Linux kernel primitives - namespaces, cgroups, AppArmor/SELinux - applied to an entire operating system rather than a single process. Each container runs its own init system (e.g., systemd), can manage services, run Docker inside itself (Docker-in-Container), and behave like a full machine. Full QEMU/KVM virtual machines provide hardware-level isolation with a dedicated guest kernel, comparable to Firecracker or libkrun but with the operational convenience of the Incus management layer. Containers run unprivileged by default, with automatic UID/GID mapping to prevent privilege escalation to the host.
+* **Advantages:** System containers provide stronger isolation than application containers because they present a complete OS boundary rather than just process-level namespacing. The full init system enables running complex multi-service workloads, including Docker daemons, SSH servers, and development toolchains, within a single isolated container. Incus also offers an image-based workflow with daily-published distribution images, multiple storage backends, network management, and device passthrough (USB, GPU, NICs, disks).
+* **Security Model:** Incus employs defense-in-depth: unprivileged containers by default prevent root-in-container from mapping to root-on-host; Seccomp filters restrict dangerous system calls; AppArmor profiles confine container access; and cgroup-based resource restrictions prevent denial-of-service. For workloads requiring the strongest possible isolation, Incus's QEMU VM mode provides a hardware-enforced boundary with a dedicated kernel, achieving microVM-grade security while retaining the same unified CLI and management API.
+* **Use Cases:** Well-suited for development environments, AI coding agent sandboxes, CI/CD pipelines requiring full OS capabilities, and multi-tenant isolation scenarios where each tenant needs a complete, isolated operating system environment.
+* **Adoption:** This technology is used by:
+  - **Canonical** - Incus's predecessor LXD powers Ubuntu's container infrastructure
+  - **Enterprise environments** - used for multi-tenant hosting and development environments
 
 ## **3\. Feature Matrix: At-a-Glance Comparison**
 
