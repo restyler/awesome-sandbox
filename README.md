@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. SandBase Harness: Multi-Backend Runtime for AI Agents](#420-sandbase-harness-multi-backend-runtime-for-ai-agents)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -275,6 +276,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**SandBase Harness** ↓](#420-sandbase-harness-multi-backend-runtime-for-ai-agents) | Local process / Docker / Kubernetes / worker | Jul 2026 | 620+ | Apache-2.0 | Yes (Only) | No | Session-scoped | Configurable by backend | Short & Long-Running Agent Sessions |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +596,24 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. SandBase Harness: Multi-Backend Runtime for AI Agents**
+
+* **Overview:** SandBase Harness is an open-source, local-first runtime that gives AI agents a common session and tool-execution layer across local processes, per-session Docker containers, Kubernetes workloads, and self-hosted workers. It is broader than a sandbox library: the same runtime also manages model routing, memory, permissions, credentials, approvals, and MCP tools. Sandboxing is therefore a selectable execution backend rather than the entire product.
+* **GitHub:** [sandbaseai/sandbase-harness](https://github.com/sandbaseai/sandbase-harness)
+* **MCP Registry:** [io.github.sandbaseai/sandbase-harness](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.sandbaseai%2Fsandbase-harness)
+* **Launch Date:** First public release in July 2026.
+* **GitHub Stars:** More than 620.
+* **License:** **Apache-2.0**.
+* **Hosting:**
+  * **SaaS:** No. The project does not provide a hosted sandbox service.
+  * **Self-Hosted:** Yes, exclusively. The API and workers run on infrastructure controlled by the user.
+* **Capabilities:**
+  * **Filesystem Access:** Session-scoped. Docker sessions use a dedicated container; Kubernetes and worker sessions execute in their configured remote environments. The local backend runs directly on the host and should not be treated as a security boundary.
+  * **Network Access:** Inherits the selected backend's network configuration. Network isolation is not automatically equivalent across local, Docker, Kubernetes, and worker modes.
+  * **Workload Suitability:** Supports one-shot tool execution as well as persistent, multi-turn agent sessions with streamed events, memory, and resumable runtime state.
+  * **Agent Integration:** Exposes sessions, prompts, tools, events, and snapshots through an official MCP server, allowing MCP-compatible clients to use the same managed execution layer.
+  * **Security Model:** Docker mode provides container isolation and Kubernetes mode relies on the cluster's pod and policy boundaries. As with other container-backed systems, neither is inherently a microVM boundary; deployment hardening and backend policy determine the effective isolation strength.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
