@@ -259,6 +259,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**microsandbox** ↓](#43-microsandbox-self-hosted-microvms-for-untrusted-code) | libkrun (MicroVM) | May 2025 | 3.3k+ | Apache-2.0 | Yes (Primary) | No | Persistent & Ephemeral | Full | Short & Long-Running |
 | [**WebContainers** ↓](#44-webcontainers-browser-native-development-runtime) | Browser-based Node.js/Wasm | 2021 | N/A | Proprietary | No | Yes | Ephemeral | Browser-limited | Short & Medium-Running |
 | [**Replit** ↓](#45-replit-collaborative-browser-based-development) | Containers/VMs | 2016 | N/A | Proprietary | No | Yes | Persistent | Full | Short & Long-Running |
+| [**Sandbox as a Service** ↓](#420-sandbox-as-a-service-full-vms-with-preview-urls-billed-by-the-second) | Full VMs (cloud hypervisor) | Aug 2026 | N/A (MCP client MIT) | Proprietary | No | Yes | Ephemeral | Full (filtered egress) | Medium & Long-Running |
 | [**Cloudflare Workers** ↓](#46-cloudflare-workers-edge-computing-with-v8-isolates) | V8 Isolates | 2017 | N/A | Proprietary | No | Yes | Ephemeral | Edge-limited | Short-Running |
 | [**Fly.io** ↓](#47-flyio-modern-application-hosting-with-microvms) | MicroVMs (Firecracker) | 2017 | N/A | Proprietary | No | Yes | Persistent | Full | Short & Long-Running |
 | [**Kata Containers** ↓](#48-kata-containers-secure-container-runtime) | MicroVM Containers | 2017 | 5.2k+ | Apache-2.0 | Yes | No | Persistent | Full | Long-Running & Stateful |
@@ -594,6 +595,25 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. Sandbox as a Service: Full VMs with Preview URLs, Billed by the Second**
+
+* **Overview:** Sandbox as a Service provisions a **full cloud VM per sandbox** rather than a microVM or a container. That trade is deliberate and cuts both ways: startup is measured in tens of seconds instead of milliseconds, and in exchange the guest is an ordinary Linux machine with no microVM constraints — nested virtualization and Docker-in-sandbox are possible in a way Firecracker-based runtimes cannot offer, since [Firecracker supports neither nested KVM nor Windows guests](https://github.com/firecracker-microvm/firecracker/issues/668). It suits workloads measured in minutes to hours, and suits per-turn agent loops poorly.
+* **Website:** [sandbox-as-a-service.com](https://sandbox-as-a-service.com)
+* **MCP server:** [fstandhartinger/sandbox-as-a-service-mcp](https://github.com/fstandhartinger/sandbox-as-a-service-mcp) (MIT), also in the [official MCP registry](https://registry.modelcontextprotocol.io) as `com.sandbox-as-a-service/mcp`.
+* **Launch Date:** August 2026.
+* **License:** Proprietary service; the MCP client is MIT.
+* **Hosting:**
+  * **SaaS:** Yes.
+  * **Self-Hosted:** No.
+* **Capabilities:**
+  * **Filesystem Access:** Ephemeral. A dedicated disk per sandbox (40–160 GB by size), destroyed with the machine. A REST filesystem API moves files in and out over SFTP rather than through shell escaping.
+  * **Network Access:** Full outbound, with the cloud metadata endpoint blocked, outbound SMTP blocked, RFC1918 ranges rejected, a connection-rate limit against port scanning, and a per-sandbox egress byte cap.
+  * **Inbound / preview URLs:** Yes. A port inside the sandbox can be given a public https address. Notably, **no inbound port is opened on the machine** — the request is carried in over the control plane's existing SSH connection, so the guest keeps listening on its own localhost and its inbound attack surface stays empty. WebSocket upgrades pass through.
+  * **Workload Suitability:** Medium and long-running. Sessions run up to 24 hours on any account with no subscription tier, which is the main axis on which it differs from E2B's plan-gated session limits. Cold start is roughly 30 seconds, so per-turn create/destroy loops are a poor fit.
+  * **Languages:** Whatever the image carries — Python 3.12, Node 22, git and build-essential — plus anything the code installs at runtime. Execution is shell commands, not a language-specific interpreter.
+  * **Security Model:** One dedicated VM per sandbox with its own kernel, single-tenant, never reused between accounts, destroyed on expiry. Customer code runs as an unprivileged user with no sudo. **This is VM isolation, not container isolation**, but on a full hypervisor rather than a microVM — a larger guest surface than Firecracker, with a correspondingly larger set of things the guest can do.
+  * **Pricing:** Per second from prepaid credit, from $0.09/hour for 2 vCPU / 4 GB / 40 GB. No subscription, no seats.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
