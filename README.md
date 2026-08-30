@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. Cratera: Hardware-Isolated MicroVM Code Execution Engine](#420-cratera-hardware-isolated-microvm-code-execution-engine)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -107,6 +108,7 @@ Developed and open-sourced by Amazon Web Services (AWS), [Firecracker](https://f
 * **Security Model:** For defense-in-depth, Firecracker employs a companion "jailer" process. The jailer sets up a secure environment using Linux cgroups and namespaces to isolate the Firecracker VMM process itself before dropping its privileges. This provides a second layer of containment in the unlikely event that the virtualization barrier is compromised.  
 * **Adoption:** This technology is the foundation for many major platforms:
   - [**e2b** ↓](#41-e2b-the-ai-agent-sandbox-runtime) - leverages Firecracker for secure, fast-starting sandboxes for AI agents
+  - [**Cratera** ↓](#420-cratera-hardware-isolated-microvm-code-execution-engine) - self-hosted Firecracker microVM engine with ~5ms snapshot restore across 30 languages
   - [**Fly.io** ↓](#47-flyio-modern-application-hosting-with-microvms) - uses Firecracker microVMs for modern application hosting
   - [**Vercel Sandbox** ↓](#412-vercel-sandbox-firecracker-microvms-for-agent-workloads) - runs untrusted/AI-generated code in Firecracker microVMs across Vercel's regional infrastructure
   - [**AWS Bedrock AgentCore** ↓](#413-aws-bedrock-agentcore-managed-agent-runtime--code-interpreter) - provisions a dedicated Firecracker microVM per agent session for its Code Interpreter and Runtime tools
@@ -275,6 +277,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**Cratera** ↓](#420-cratera-hardware-isolated-microvm-code-execution-engine) | Firecracker (MicroVM) | 2026 | 1.0k+ | Apache-2.0 | Yes (Primary) | Yes | Ephemeral (tmpfs/snapshot) | Default-deny (Zero-NIC) / Configurable | Short-Running & High-Throughput |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +597,22 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. Cratera: Hardware-Isolated MicroVM Code Execution Engine**
+
+* **Overview:** [Cratera](https://cratera.org) is an open-source, high-performance code execution engine written in Rust and powered by AWS Firecracker microVMs. It is specifically built for online judges, coding education platforms, competitive programming, and AI agent execution sandboxes. Instead of full OS cold boots, Cratera utilizes memory snapshot restores to launch isolated guest microVMs in approximately 5 milliseconds across 30 programming languages out of the box.
+* **GitHub:** [cratera-project/cratera](https://github.com/cratera-project/cratera)
+* **Website:** [cratera.org](https://cratera.org)
+* **Launch Date:** **2026**
+* **License:** **Apache-2.0**, fully open-source with permissive licensing.
+* **Hosting:**
+  * **SaaS:** Yes. Live platform running at [cratery.cratera.org](https://cratery.cratera.org) for interactive coding mastery.
+  * **Self-Hosted:** Yes, primary model. Available as a single Rust binary daemon (`cratera serve`) and CLI tool (`cratera doctor`, `cratera lang`, `cratera test`).
+* **Underlying Technology:** **Firecracker MicroVMs & Linux KVM** with vsock IPC communication, unprivileged Jailer chroot (UID 20001), cgroups v2 resource accounting, and hardware Ring 3 virtualization isolation.
+* **Capabilities:**
+  * **Filesystem Access:** **Ephemeral & Secure** - Read-only root filesystem with memory-backed guest tmpfs; every microVM is restored from clean snapshot or destroyed immediately after execution.
+  * **Network Access:** **Zero-NIC Default-Deny** - Sandboxes run with zero guest network interfaces and host-level eBPF IP blocking (`IPAddressDeny=any`), preventing data exfiltration and network attacks.
+  * **Workload Suitability:** Ideal for **short-lived, high-throughput, and adversarial code execution** where container escapes are unacceptable and sub-10ms latency is required. Supports 30+ runtimes defined via declarative `languages.toml` recipes.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
