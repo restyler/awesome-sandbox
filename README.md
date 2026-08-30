@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. SandBase Harness: A Self-Hosted Runtime with Selectable Sandbox Backends](#420-sandbase-harness-a-self-hosted-runtime-with-selectable-sandbox-backends)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -594,6 +595,22 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. SandBase Harness: A Self-Hosted Runtime with Selectable Sandbox Backends**
+
+* **Overview:** SandBase Harness is an Apache-2.0, local-first TypeScript runtime for agents that combines persistent sessions, an MCP bridge, explicit tool approvals, credential scoping, and audit/replay with replaceable execution backends. It is a runtime and governance layer rather than a standalone microVM engine.
+* **GitHub:** [sandbaseai/sandbase-harness](https://github.com/sandbaseai/sandbase-harness)
+* **Documentation:** [Installation guide](https://github.com/sandbaseai/sandbase-harness/blob/main/docs/installation.md) | [Sandbox backends](https://github.com/sandbaseai/sandbase-harness/blob/main/docs/sandbox-backends.md)
+* **License:** **Apache-2.0**.
+* **Hosting:**
+  * **SaaS:** No project-hosted SaaS is claimed.
+  * **Self-Hosted:** Yes; the default local mode runs on a developer machine, with Docker, Kubernetes, and self-hosted worker providers available when configured.
+* **Underlying Technology:** Local path-isolated workspaces plus optional Docker, Kubernetes, or self-hosted worker execution. The isolation properties are backend- and deployment-dependent; the project does not claim universal microVM or kernel isolation.
+* **Capabilities:**
+  * **Filesystem Access:** Session workspaces and artifacts are scoped by the selected environment/provider.
+  * **Tool Access:** MCP tools are exposed through explicit approval and credential-scoping controls, with auditable session/tool-call records and replay support.
+  * **Workload Suitability:** **Long-running and stateful** agent workflows where persistent sessions, resumability, and inspectable execution history matter more than a single ephemeral code-run.
+* **Unique Value Proposition:** The same session and governance model can be used with local development execution or operator-managed container/cluster/worker backends, allowing builders to evaluate the chosen isolation mechanism separately from the agent lifecycle and tool-control layer.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
