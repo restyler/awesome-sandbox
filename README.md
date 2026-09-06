@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. bashkit4j: An In-JVM Virtual Bash for Java](#420-bashkit4j-an-in-jvm-virtual-bash-for-java)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -275,6 +276,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**bashkit4j** ↓](#420-bashkit4j-an-in-jvm-virtual-bash-for-java) | In-process interpreter (language-level) | Sep 2026 | New | MIT | Yes (in-process) | No | Virtual VFS; allowlisted mounts | Denied by default | Short & Session-Based |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +596,23 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. bashkit4j: An In-JVM Virtual Bash for Java**
+
+* **Overview:** bashkit4j takes the same "library, not platform" path as llm-sandbox, but moves the boundary inside the process. Instead of containerizing, it embeds a *virtual computer* in the JVM: a POSIX-style bash whose 160+ commands (`grep`, `sed`, `awk`, `jq`, `tar`, `git`, …) are re-implemented in Rust, executed against an in-memory virtual filesystem. Untrusted scripts never spawn an OS process or issue a syscall — they address a virtual disk, a virtual identity (`whoami`/`id`), and a network that does not exist. The native engine ships inside the Maven Central jar for Windows, Linux and macOS on x86-64 and ARM64, so adoption is a single dependency with no Docker daemon and no bash binary on the host.
+* **GitHub:** [tersePrompts/bashkit4j](https://github.com/tersePrompts/bashkit4j)
+* **Launch Date:** First release (0.1.0) in September 2026.
+* **GitHub Stars:** Early project.
+* **License:** **MIT License**.
+* **Hosting:**
+  * **SaaS:** No. There is no hosted offering.
+  * **Self-Hosted:** It is a library: execution runs inside the caller's JVM process.
+* **Capabilities:**
+  * **Filesystem Access:** Scripts see only the in-memory VFS by default; state persists across calls within an instance. Host directories can be mounted read-only or read-write, but every mount root must resolve under a configured, natively-enforced allowlist prefix or it is rejected outright (canonicalized before comparison, so `..` and symlink tricks fail closed).
+  * **Network Access:** Denied by default; `curl`/`wget` exist as commands but are hard-unavailable in the current build, and there is no allowlist escape hatch yet.
+  * **Workload Suitability:** Millisecond startup and stateful sessions suit per-tenant, long-lived sandboxes — agent tool loops, user-supplied scripts in SaaS. A per-exec wall-clock timeout and an out-of-band cancellation API bound runaway scripts; both are checked at command boundaries.
+  * **Languages:** Bash (POSIX-style) with a broad coreutils surface including `jq`, `awk`, `bc`, `tar`, and `git`.
+  * **Security Model:** Language-level isolation, the same class as WASM/V8: enforced by the interpreter, not the kernel. The trust assumption is the Rust interpreter itself; scripts cannot touch host paths or processes unless a mount is explicitly allowlisted. Command-count, memory, and work budgets plus the deadline provide DoS containment.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
