@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. Vetto: Daemon-less Kernel Sandbox for AI Coding Agents](#420-vetto-daemon-less-kernel-sandbox-for-ai-coding-agents)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -594,6 +595,19 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+
+### **4.20. Vetto: Daemon-less Kernel Sandbox for AI Coding Agents**
+
+* **Overview:** Vetto is a daemon-less kernel sandbox for AI coding agents that wraps the agent process in the host kernel's own isolation primitives: Landlock ABI 1-6 + user/mount/net namespaces + hand-built seccomp-BPF on Linux, Seatbelt on macOS. `vetto enable <agent>` installs a transparent PATH shim, so Claude Code, Codex CLI and 18 more agents run as usual but under kernel enforcement. No daemons, no Docker, ~4ms startup overhead.
+* **GitHub:** [shleder/vetto](https://github.com/shleder/vetto)
+* **License:** **Apache-2.0**.
+* **Hosting:** Self-hosted only (npm, crates.io, Homebrew, curl installer). Linux is Tier-1 production; macOS is Tier-2 experimental (Seatbelt read-denial limited by Apple dyld); Windows is Tier-3 preview.
+* **Capabilities:**
+  * **Filesystem Access:** kernel-deny on secrets (`~/.ssh`, `~/.aws`, `.env`) with per-agent TOML profiles and project marker detection.
+  * **Network Access:** allowlist egress broker (host dials, connected fd passed over SCM_RIGHTS); off-allowlist domains get typed policy denials.
+  * **Workload Suitability:** persistent interactive sessions; Git Guard blocks destructive git ops (`push --force`, `reset --hard`), every session ends with a security recap, `vetto undo` rolls back workspace changes.
+* **Unique Value Proposition:** zero-overhead kernel boundary with zero workflow change — the agent binary stays the same, only the PATH entry is a shim. Ships signed release artifacts (minisign) and an 8-vector red-team battery in CI.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
