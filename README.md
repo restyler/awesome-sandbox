@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. CreateOS Sandbox: Firecracker MicroVMs with Fork, Private Networks and In-Kernel Egress Control](#420-createos-sandbox-firecracker-microvms-with-fork-private-networks-and-in-kernel-egress-control)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -109,6 +110,7 @@ Developed and open-sourced by Amazon Web Services (AWS), [Firecracker](https://f
   - [**e2b** ↓](#41-e2b-the-ai-agent-sandbox-runtime) - leverages Firecracker for secure, fast-starting sandboxes for AI agents
   - [**Fly.io** ↓](#47-flyio-modern-application-hosting-with-microvms) - uses Firecracker microVMs for modern application hosting
   - [**Vercel Sandbox** ↓](#412-vercel-sandbox-firecracker-microvms-for-agent-workloads) - runs untrusted/AI-generated code in Firecracker microVMs across Vercel's regional infrastructure
+  - [**CreateOS Sandbox** ↓](#420-createos-sandbox-firecracker-microvms-with-fork-private-networks-and-in-kernel-egress-control) - one Firecracker microVM per sandbox with pause/resume/fork of full VM state and an egress allowlist enforced in-kernel on the host
   - [**AWS Bedrock AgentCore** ↓](#413-aws-bedrock-agentcore-managed-agent-runtime--code-interpreter) - provisions a dedicated Firecracker microVM per agent session for its Code Interpreter and Runtime tools
   - **AWS Lambda** - Amazon's serverless computing service runs on Firecracker
   - **AWS Fargate** - Amazon's container hosting service uses Firecracker for isolation
@@ -275,6 +277,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**CreateOS Sandbox** ↓](#420-createos-sandbox-firecracker-microvms-with-fork-private-networks-and-in-kernel-egress-control) | Firecracker (MicroVM) | 2026 (alpha) | N/A (SDK MIT) | MIT (SDK, CLI) / Proprietary (platform) | Yes (control plane + storage) | Yes | Persistent (pause, resume, fork) | Configurable (in-kernel allowlist; open by default, no ingress) | Short & Long-Running |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +597,24 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. CreateOS Sandbox: Firecracker MicroVMs with Fork, Private Networks and In-Kernel Egress Control**
+
+* **Overview:** CreateOS Sandbox (by NodeOps) gives each workload its own Firecracker microVM with its own guest kernel, driven from a REST API, a TypeScript SDK, a CLI, or an MCP server so an agent can provision its own compute through a tool call. It is built for agent code execution, ephemeral development environments, and CI/batch jobs, and it is in alpha (no SLA yet) as of September 2026.
+* **GitHub:** [NodeOps-app/createos-sandbox-sdk](https://github.com/NodeOps-app/createos-sandbox-sdk) (TypeScript SDK, MIT) and [NodeOps-app/createos-cli](https://github.com/NodeOps-app/createos-cli); the control plane is proprietary.
+* **Website:** [createos.sh/products/sandbox](https://createos.sh/products/sandbox) · Docs: [docs.createos.sh/Sandbox/Overview](https://docs.createos.sh/Sandbox/Overview)
+* **Launch Date:** 2026 (alpha).
+* **GitHub Stars:** Early-stage; the star count reflects the SDK, not the managed platform.
+* **License:** SDK and CLI are **MIT**. The hosted control plane is proprietary and usage-billed.
+* **Hosting:**
+  * **SaaS:** Yes. Managed control plane at `api.sb.createos.sh`, EU and US regions.
+  * **Self-Hosted:** Yes. The control plane and storage can run inside your own boundary with S3-compatible object storage you control.
+* **Capabilities:**
+  * **Filesystem Access:** Persistent for the sandbox's life. Default 10 GiB disk per sandbox; S3-compatible buckets can be mounted and detached live; disk syncs to your own object storage.
+  * **State:** Pause snapshots memory, registers and device state to durable storage (compute billing stops); resume restores in place; fork clones a paused sandbox into independent copies. No maximum session length; optional idle auto-pause of 60 seconds to 24 hours.
+  * **Network Access:** Inbound closed by default (per-sandbox HTTPS ingress is opt-in). Outbound is open when no egress rules are set; any rule switches the sandbox to deny-by-default, with the allowlist (host, host:port, wildcard subdomain, IP, CIDR) enforced in-kernel on the host, outside the VM. Private overlay networks connect sandboxes to each other.
+  * **Images:** First-party images (Ubuntu, Debian, Alpine, a development workspace with Python/Node/Bun/Go/Rust/Docker, and a desktop image) plus custom root filesystems built from a Dockerfile.
+  * **Workload Suitability:** Short- and long-running. ~210 ms median time-to-interactive per the REST reference; per-second billing with no egress fees; pause makes idle long-lived sessions free of compute charges.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
