@@ -669,6 +669,7 @@ When evaluating sandboxing solutions, one of the most fundamental architectural 
 - **Hardware-Level Isolation**: Dedicated guest kernel per sandbox
 - **Stronger Boundaries**: Hardware-enforced isolation between workloads
 - **Reduced Attack Surface**: Host kernel not directly accessible to guest code
+- [VibeAudit](https://vibeaudit.sh/) - Pre-launch security audit for AI-built apps: reads the whole repo and returns findings with file:line and a paste-ready fix prompt each. Free quick scan.
 - **Multi-Tenancy**: Superior isolation for untrusted code from different sources
 - **Escape Mitigation**: Hardware virtualization makes container escape techniques ineffective
 
