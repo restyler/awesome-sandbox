@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. Freestyle: Stateful Full Linux VMs for Long-Running Agents](#420-freestyle-stateful-full-linux-vms-for-long-running-agents)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -275,6 +276,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**Freestyle** ↓](#420-freestyle-stateful-full-linux-vms-for-long-running-agents) | Full Linux VMs (hardware virtualization) | Apr 2026 | 10 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Persistent (memory + disk) | Configurable (VPCs, firewall, TLS) | Long-Running & Stateful |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -595,6 +597,24 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
 
+### **4.20. Freestyle: Stateful Full Linux VMs for Long-Running Agents**
+
+* **Overview:** Freestyle is a managed VM platform for agent workloads that need a complete Linux machine and state that survives across turns. It is designed for long-running or failure-prone work rather than one-shot code execution: a VM can pause with its memory intact, resume at the same point later, and branch through snapshots that capture both memory and disk.
+* **GitHub:** [freestyle-sh/sandbox_sdks](https://github.com/freestyle-sh/sandbox_sdks) (open-source TypeScript SDK; the hosted VM platform itself is proprietary)
+* **Website:** [freestyle.sh/products/vms](https://www.freestyle.sh/products/vms)
+* **Launch Date:** The VM platform launched publicly on **April 6, 2026**.
+* **GitHub Stars:** The TypeScript SDK repository has approximately 10 stars; this count reflects the client library rather than the managed platform.
+* **License:** The `freestyle` SDK package is **MIT**. The hosted platform is a proprietary, usage-billed service.
+* **Hosting:**
+  * **SaaS:** Yes, exclusively. Freestyle operates the VM infrastructure.
+  * **Self-Hosted:** No.
+* **Underlying Technology:** Each sandbox is a full Linux VM backed by hardware virtualization, with root access and support for nested virtualization, FUSE, eBPF, and normal Linux networking. Public plans offer VM sizes up to 32 vCPUs and 64 GB of RAM.
+* **Capabilities:**
+  * **Filesystem Access:** Persistent. Pausing preserves memory as well as the filesystem, while snapshots capture memory and disk so a configured or running environment can be cloned and branched.
+  * **Network Access:** Configurable through dual-stack private VPCs, firewall rules, public HTTPS domains, WireGuard tunnels, and TLS rules that can inject credentials at the edge.
+  * **Workload Suitability:** Built for **long-running, stateful** agent tasks, development environments, browser automation, and experiments that benefit from pause, resume, or branching. Freestyle's own guidance recommends considering lighter alternatives for easily retried tasks under about 15 minutes, and other infrastructure for sustained CPU-heavy CI or production application hosting that needs autoscaling and load balancing.
+* **Unique Value Proposition:** Freestyle combines a durable machine lifecycle with memory-and-disk branching and private networking. An agent can keep a workspace for weeks, release compute while paused, resume the same in-memory processes, or fork the machine before trying several approaches.
+
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
 A sandbox stops an agent from touching your filesystem or process tree, but it doesn't answer a separate question: how does that agent call an authenticated API without ever holding the actual API key? Several platforms above, [**Docker Sandboxes** ↓](#411-docker-sandboxes-disposable-microvms-for-ai-coding-agents), [**Vercel Sandbox** ↓](#412-vercel-sandbox-firecracker-microvms-for-agent-workloads), [**AWS Bedrock AgentCore** ↓](#413-aws-bedrock-agentcore-managed-agent-runtime--code-interpreter), [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents), and [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy), all answer it the same way: route outbound traffic through a proxy, give the sandboxed code a placeholder token instead of the real credential, and have the proxy swap in the real value only when a request matches an allowed destination. If the sandbox is compromised, whatever it exfiltrates is a token that's worthless outside the proxy.
@@ -740,7 +760,7 @@ The nature of your workload - whether it's a one-off task or a long-running proc
     **e2b**'s fast startup also makes it a strong contender.  
     **Vercel Sandbox** and **AWS Bedrock AgentCore**'s Code Interpreter are both purpose-built for one-shot, torn-down-after-use execution, and **Docker Sandboxes** targets one disposable sandbox per agent task rather than a persistent environment.  
 * **For Stateful/Long-Running Processes:** If your use case requires a persistent environment where the filesystem can be modified, dependencies can be installed, and state is preserved across multiple interactions (e.g., an interactive AI coding assistant, a full development workspace, a multi-step agent), you need a platform with robust persistence features.  
-  * **Recommended:** **Daytona**, **e2b** (Pro plan), and **microsandbox** (project mode) are all explicitly designed to support long-running, stateful workloads. CDEs like  
+  * **Recommended:** **Freestyle** is built around long-lived VMs that preserve memory and disk across pauses and can branch from running state. **Daytona**, **e2b** (Pro plan), and **microsandbox** (project mode) also support long-running, stateful workloads. CDEs like
     **Gitpod** and **Coder** also excel at this.
 
 ### **Axis 3: SaaS Convenience vs. Self-Hosted Control**
@@ -748,7 +768,7 @@ The nature of your workload - whether it's a one-off task or a long-running proc
 Your organization's operational model and compliance requirements will determine your hosting strategy.
 
 * **For a Managed Service (SaaS):** If you want to accelerate development and offload the operational burden of managing sandboxing infrastructure, a SaaS platform is the best choice. These platforms offer usage-based pricing and handle all the scaling, maintenance, and security of the underlying infrastructure.  
-  * **Recommended:** **e2b** and **Daytona** provide mature, feature-rich SaaS offerings (Daytona is SaaS-only as of June 2026, see its [4.2 profile](#42-daytona-secure--elastic-infrastructure-for-ai-code), so it no longer fits the self-hosted list below). **Vercel Sandbox**, **AWS Bedrock AgentCore**, **Koyeb Sandboxes**, and **Deno Sandbox** are also SaaS-only, and are the natural choice if you're already building on Vercel, AWS, Koyeb, or Deno Deploy respectively.  
+  * **Recommended:** **e2b** and **Daytona** provide mature, feature-rich SaaS offerings (Daytona is SaaS-only as of June 2026, see its [4.2 profile](#42-daytona-secure--elastic-infrastructure-for-ai-code), so it no longer fits the self-hosted list below). **Freestyle** is the managed option for long-running VMs with pause, resume, branching, and private VPCs. **Vercel Sandbox**, **AWS Bedrock AgentCore**, **Koyeb Sandboxes**, and **Deno Sandbox** are also SaaS-only, and are the natural choice if you're already building on Vercel, AWS, Koyeb, or Deno Deploy respectively.
 * **For Full Control (Self-Hosted):** If you have strict data sovereignty, regulatory compliance (e.g., GDPR), or security policies that mandate running all infrastructure within your own network perimeter, a self-hosted solution is necessary.  
   * **Recommended:** **microsandbox** is self-hosted by design and is the most straightforward choice for this model.  
     **e2b**, **Gitpod**, and **Coder** also offer robust self-hosting options, typically as part of their enterprise offerings (**Daytona** offered this previously but no longer does; see [4.2](#42-daytona-secure--elastic-infrastructure-for-ai-code)). **Docker Sandboxes** and **NVIDIA OpenShell** are self-hosted by design for local agent sandboxing, **Apple Containerization** fills the same role specifically on Apple Silicon Macs, and **Amazing Sandbox** and **nono** are both lightweight options for wrapping individual commands or tool calls rather than running a full persistent agent environment, with **nono** additionally sandboxing each tool the agent delegates to, not just the agent process itself.
@@ -758,7 +778,7 @@ Your organization's operational model and compliance requirements will determine
 Finally, consider whether you need a tool tailored for a specific domain or a more general-purpose platform.
 
 * **For AI-Centric Workflows:** If you are building AI agents, code interpreters, or other LLM-powered applications, choosing a platform that is explicitly optimized for this domain can provide significant advantages. Their SDKs and features are often designed to solve common problems in agentic development.  
-  * **Recommended:** **e2b** and **Daytona** are heavily focused on the AI and agent use case. Among the newer entrants, **Docker Sandboxes** and **Vercel Sandbox** are both purpose-built for coding-agent workloads, **AWS Bedrock AgentCore** targets agents within the broader AWS agent-platform stack, and **NVIDIA OpenShell** adds policy-governed sandboxing specifically for autonomous agent fleets.  
+  * **Recommended:** **e2b**, **Daytona**, and **Freestyle** are heavily focused on the AI and agent use case, with Freestyle specializing in long-running agents that need durable machine state and private networking. Among the newer entrants, **Docker Sandboxes** and **Vercel Sandbox** are both purpose-built for coding-agent workloads, **AWS Bedrock AgentCore** targets agents within the broader AWS agent-platform stack, and **NVIDIA OpenShell** adds policy-governed sandboxing specifically for autonomous agent fleets.
 * **For General-Purpose Execution/Development:** If your needs are broader, such as providing general-purpose development environments or a secure runtime for a variety of applications, a more general platform may be a better fit.  
   * **Recommended:** **microsandbox** is a powerful, general-purpose secure execution engine.  
     **Coder** and **Gitpod** are leading general-purpose Cloud Development Environments. **Apple Containerization** is the general-purpose choice for VM-backed containers on macOS specifically.
