@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. Runtime: Firecracker MicroVMs for Agents with Pause, Fork and an Egress Proxy](#420-runtime-firecracker-microvms-for-agents-with-pause-fork-and-an-egress-proxy)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -275,6 +276,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**Runtime** ↓](#420-runtime-firecracker-microvms-for-agents-with-pause-fork-and-an-egress-proxy) | Firecracker (MicroVM) | Sep 2026 | N/A | Apache-2.0 (SDKs) / Proprietary (platform) | No | Yes | Persistent (pause, snapshots, volumes) | Configurable (allow/deny + proxy) | Short & Long-Running |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +596,23 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. Runtime: Firecracker MicroVMs for Agents with Pause, Fork and an Egress Proxy**
+
+* **Overview:** Runtime is a managed sandbox service for AI agents. Each sandbox is a Firecracker microVM with its own Linux kernel, created from an SDK call, the `runtime` CLI or an MCP server. It sits with Vercel Sandbox, Koyeb Sandboxes and Deno Sandbox as a hosted service, and adds pause and wake that keep memory and running processes, snapshots and forks, and an SDK entry point for code written against E2B's SDK.
+* **GitHub:** [withruntime/runtime](https://github.com/withruntime/runtime) (SDKs for TypeScript, Python, Go, Java and Ruby, the CLI and the MCP server; the platform itself is proprietary)
+* **Website:** [withruntime.com](https://withruntime.com)
+* **Launch Date:** Public sign-up opened in **September 2026**.
+* **GitHub Stars:** The SDK repository is new; as with other managed platforms, stars reflect the client libraries rather than the service.
+* **License:** The SDKs are **Apache-2.0**. The platform is a proprietary, usage-billed service.
+* **Hosting:**
+  * **SaaS:** Yes, in one region (Virginia, US).
+  * **Self-Hosted:** No.
+* **Underlying Technology:** Each sandbox is its own **Firecracker microVM**. The default is 2 vCPUs and 4 GiB of memory, up to 64 GiB on a paid sandbox. A new sandbox reached running in a median 243 ms, and its first Python result in 391 ms, in Runtime's published measurement.
+* **Capabilities:**
+  * **Filesystem Access:** Persistent for the sandbox's life. Pause keeps memory and processes; snapshots and forks copy files, memory and processes; volumes are persistent disks backed up off the server daily.
+  * **Network Access:** The sandbox has no network card; every outbound connection goes through a proxy on the host, with per-sandbox allow and deny lists or no internet at all. Secrets are injected by that proxy only for the hosts they name, so the code in the sandbox sees a placeholder, the pattern in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code) built into the platform.
+  * **Workload Suitability:** **Short and long-running.** A lease can be extended indefinitely. Billing is per active vCPU-hour ($0.025) and reserved GiB-hour ($0.0075), so a waiting agent pays mostly for memory.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
