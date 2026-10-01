@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. hotcell: Self-Hosted Sandboxes for AI Coding Agents](#420-hotcell-self-hosted-sandboxes-for-ai-coding-agents)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -595,9 +596,24 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
 
+### **4.20. hotcell: Self-Hosted Sandboxes for AI Coding Agents**
+
+* **Overview:** hotcell is an open-source sandbox fleet manager for running AI coding agents on hardware you control, from a local Mac to a Linux VM or bare-metal server. Its CLI and daemon manage multiple persistent, isolated workspaces, including parallel cells for agents working on the same repository.
+* **GitHub:** [sinameraji/hotcell](https://github.com/sinameraji/hotcell)
+* **GitHub Stars:** Approximately 19.
+* **License:** **Apache-2.0**.
+* **Hosting:**
+  * **SaaS:** No.
+  * **Self-Hosted:** Yes; hotcell runs on your own machine or server.
+* **Underlying Technology:** Docker containers, with optional Firecracker microVMs on Linux/KVM and Apple Virtualization on macOS.
+* **Capabilities:**
+  * **Filesystem Access:** Each sandbox has its own persistent workspace; a repository can be cloned into each cell so agents work independently.
+  * **Network Access:** An optional egress gateway keeps configured API credentials on the host and substitutes per-sandbox tokens for supported HTTP credentials. Optional default-deny egress enforcement is kernel-level on Linux and microVMs; on macOS Docker it is advisory.
+  * **Workload Suitability:** Persistent, parallel AI coding-agent workloads on self-managed hardware, with CLI/API management, terminal access, and per-sandbox resource and cost monitoring. It can also run one-shot commands.
+
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
-A sandbox stops an agent from touching your filesystem or process tree, but it doesn't answer a separate question: how does that agent call an authenticated API without ever holding the actual API key? Several platforms above, [**Docker Sandboxes** ↓](#411-docker-sandboxes-disposable-microvms-for-ai-coding-agents), [**Vercel Sandbox** ↓](#412-vercel-sandbox-firecracker-microvms-for-agent-workloads), [**AWS Bedrock AgentCore** ↓](#413-aws-bedrock-agentcore-managed-agent-runtime--code-interpreter), [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents), and [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy), all answer it the same way: route outbound traffic through a proxy, give the sandboxed code a placeholder token instead of the real credential, and have the proxy swap in the real value only when a request matches an allowed destination. If the sandbox is compromised, whatever it exfiltrates is a token that's worthless outside the proxy.
+A sandbox stops an agent from touching your filesystem or process tree, but it doesn't answer a separate question: how does that agent call an authenticated API without ever holding the actual API key? Several platforms above, [**Docker Sandboxes** ↓](#411-docker-sandboxes-disposable-microvms-for-ai-coding-agents), [**Vercel Sandbox** ↓](#412-vercel-sandbox-firecracker-microvms-for-agent-workloads), [**AWS Bedrock AgentCore** ↓](#413-aws-bedrock-agentcore-managed-agent-runtime--code-interpreter), [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents), [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy), and [**hotcell** ↓](#420-hotcell-self-hosted-sandboxes-for-ai-coding-agents), all answer it the same way: route outbound traffic through a proxy, give the sandboxed code a placeholder token instead of the real credential, and have the proxy swap in the real value only when a request matches an allowed destination. If the sandbox is compromised, whatever it exfiltrates is a token that's worthless outside the proxy.
 
 The two projects below implement that pattern as standalone, general-purpose tools rather than as a feature bundled into one specific sandbox platform, so they can sit in front of any sandbox, container, or CI job you already run.
 
