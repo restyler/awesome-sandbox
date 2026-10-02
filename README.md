@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. Wippy: Policy-Checked Actor Runtime for Agents and Their Tools](#420-wippy-policy-checked-actor-runtime-for-agents-and-their-tools)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -185,6 +186,7 @@ This is the most lightweight form of sandboxing, where isolation is enforced by 
   - **Wasmtime** - server-side WASM runtime
   - **Docker+WASM** - Docker Desktop now supports WASM containers
   - **Kubernetes** - supports WASM workloads through various runtimes
+  - [**Wippy** ↓](#420-wippy-policy-checked-actor-runtime-for-agents-and-their-tools) - runs WASM components with WASI interfaces, mounts, and env vars granted per registry entry, plus a policy check on every host call
 
 #### **V8 Isolates**
 
@@ -275,6 +277,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**Wippy** ↓](#420-wippy-policy-checked-actor-runtime-for-agents-and-their-tools) | Lua VM + WASM (language runtime, policy layer) | Oct 2025 | 16 | MPL-2.0 | Yes (Only) | No | Policy-Restricted | Policy-Restricted (per-call checks, per-process egress) | Long-Running & Stateful |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -595,6 +598,25 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
 
+### **4.20. Wippy: Policy-Checked Actor Runtime for Agents and Their Tools**
+
+* **Overview:** Wippy is an open-source, self-hosted runtime that runs AI agents, their tools, and the backend they serve as supervised actors in a single Go binary. Isolation sits at the language-runtime level rather than a VM per session: Lua processes have no `io`, `load`, `debug`, or filesystem `require` and can import only the modules their registry entry declares, and WASM components get only the WASI interfaces, env vars, and mounts they are granted. Every privileged call (filesystem, SQL, env, sockets, HTTP, process spawn) is checked against declarative policies; strict mode is on by default, so a call with no matching allow is denied.
+* **GitHub:** [wippyai/runtime](https://github.com/wippyai/runtime)
+* **Website:** [wippy.ai](https://wippy.ai)
+* **Launch Date:** First public release in **October 2025**.
+* **GitHub Stars:** 16.
+* **License:** **MPL-2.0**.
+* **Hosting:**
+  * **SaaS:** No.
+  * **Self-Hosted:** Yes, exclusively. Ships as signed single binaries for Linux and macOS.
+* **Underlying Technology:** An embedded Lua VM and a WASM component host (WASI), with an actor scheduler, supervision trees, and a capability/policy layer evaluated on every guarded call.
+* **Capabilities:**
+  * **Filesystem Access:** Policy-restricted; code reaches only declared directories and mounts, optionally read-only.
+  * **Network Access:** Every dial and HTTP request is policy-checked, including private-IP and redirect checks. Egress can be routed per process: direct, through SOCKS5, or over Tailscale.
+  * **Secrets:** Code can read an environment variable only when its entry imports the `env` module and a policy allows `env.get` on that specific key. Service credentials (database DSNs, TLS keys, Temporal API keys) are injected host-side through `${env:NAME}` placeholders in entry config, so they never reach sandboxed code and never appear in registry reads or persisted state.
+  * **Workload Suitability:** **Long-running, stateful** agents and services, on one node or across a cluster, rather than one-shot code execution.
+* **Trade-offs:** Language-level isolation, not a kernel boundary. Lua has no CPU instruction metering, so runaway loops are bounded by timeouts rather than fuel. It is not meant for running arbitrary untrusted binaries; pair it with a microVM sandbox for that.
+
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
 A sandbox stops an agent from touching your filesystem or process tree, but it doesn't answer a separate question: how does that agent call an authenticated API without ever holding the actual API key? Several platforms above, [**Docker Sandboxes** ↓](#411-docker-sandboxes-disposable-microvms-for-ai-coding-agents), [**Vercel Sandbox** ↓](#412-vercel-sandbox-firecracker-microvms-for-agent-workloads), [**AWS Bedrock AgentCore** ↓](#413-aws-bedrock-agentcore-managed-agent-runtime--code-interpreter), [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents), and [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy), all answer it the same way: route outbound traffic through a proxy, give the sandboxed code a placeholder token instead of the real credential, and have the proxy swap in the real value only when a request matches an allowed destination. If the sandbox is compromised, whatever it exfiltrates is a token that's worthless outside the proxy.
@@ -729,7 +751,7 @@ This is the most important trade-off. Your choice depends on your threat model.
 * **For Balanced Security and Compatibility:** If you need stronger isolation than standard containers but can't use hardware virtualization, an application kernel is a good choice. It reduces the attack surface without requiring hardware virtualization.  
   * **Recommended:** **gVisor**.  
 * **For Maximum Performance and Speed:** If your workload is well-defined, you have some trust in the code, and startup time and resource overhead are most critical (e.g., high-volume, short-lived edge functions), a language-runtime-based sandbox is most efficient.  
-  * **Recommended:** A platform built on **WebAssembly (WASM)** or **V8 Isolates**.
+  * **Recommended:** A platform built on **WebAssembly (WASM)** or **V8 Isolates**, or **Wippy** for long-running agents whose tools run as policy-checked Lua and WASM.
 
 ### **Axis 2: Stateless Functions vs. Stateful Workloads**
 
