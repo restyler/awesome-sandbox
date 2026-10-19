@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. Mudroom: Local MicroVMs With Diff Review for Coding Agents](#420-mudroom-local-microvms-with-diff-review-for-coding-agents)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -275,6 +276,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**Mudroom** ↓](#420-mudroom-local-microvms-with-diff-review-for-coding-agents) | MicroVMs (Apple `container`) / Docker / Podman | Oct 2026 | 11 | MIT | Yes (Only) | No | Copy-on-write clone, applied after review | Configurable (allowlist proxy, logged) | Interactive agent sessions |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +596,23 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. Mudroom: Local MicroVMs With Diff Review for Coding Agents**
+
+* **Overview:** Mudroom is a macOS app and CLI that runs a coding agent (Claude Code, Codex, Gemini CLI, opencode, Aider, or any command) in a Linux sandbox on a copy-on-write clone of the project. The real project folder is never mounted. When the agent finishes, you review the diff per file and per hunk, apply what you want, and can undo each apply later. The project describes itself as an early prototype.
+* **GitHub:** [Kernel-Hunter/mudroom](https://github.com/Kernel-Hunter/mudroom)
+* **Launch Date:** First release (0.1.0) in October 2026.
+* **GitHub Stars:** 11.
+* **License:** **MIT**.
+* **Hosting:**
+  * **SaaS:** No.
+  * **Self-Hosted:** Yes, exclusively. App and CLI on Apple-silicon Macs with macOS 26 or later; CLI only on Linux, Windows and Intel Macs.
+* **Underlying Technology:** On Apple-silicon Macs it drives Apple's `container` CLI, which boots each session in its own lightweight VM (see [**Apple Containerization** ↓](#414-apple-containerization-vm-backed-containers-for-macos)). On other platforms it uses Docker or Podman containers, which isolate less than the VM backend. Project copies are APFS clones on macOS, reflinks on btrfs or XFS, and ReFS block clones on Windows, with plain copies as a fallback.
+* **Capabilities:**
+  * **Filesystem Access:** The agent sees only the clone, mounted at `/workspace`, including untracked and ignored files. The clone is snapshotted every 5 minutes while the agent runs. Changes reach the real folder only when you apply them, and the apply step checks that the project has not changed underneath.
+  * **Network Access:** Three modes per project. **Locked** (the default) puts the VM on a host-only network with no route out; a proxy on the host lets through only allowlisted hosts (the agent's own API hosts plus any you add), refuses allowed names that resolve to private, loopback or link-local addresses, and logs every connection. **Open** gives normal access, and **Offline** has no network at all.
+  * **Workload Suitability:** **Interactive agent sessions** on a local project that end with a human review of the changes.
+* **Unique Value Proposition:** Local agent sandboxes usually either mount the project read-write, so edits land right away, or keep it out entirely, so results have to be copied back by hand. Mudroom lets the agent work freely on a clone and holds every change until you have reviewed the diff and picked what to apply.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
