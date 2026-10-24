@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. OnlineCompiler.io: Hosted gVisor Sandboxes for 46 Languages](#420-onlinecompilerio-hosted-gvisor-sandboxes-for-46-languages)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -275,6 +276,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**OnlineCompiler.io** ↓](#420-onlinecompilerio-hosted-gvisor-sandboxes-for-46-languages) | gVisor (runsc) | Jan 2025 | N/A | Proprietary | No | Yes | Ephemeral (per run) | None | Short-Running (30 s cap) |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +596,23 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. OnlineCompiler.io: Hosted gVisor Sandboxes for 46 Languages**
+
+* **Overview:** OnlineCompiler.io is a hosted code execution API: each request compiles and runs one program in a fresh sandbox and returns stdout, stderr, the exit code, time and memory. It targets online judges, coding courses and autograders rather than long-lived agent environments, with a `run-tests` endpoint that judges one solution against many test cases in a single call, plus Judge0- and Piston-compatible endpoints.
+* **GitHub:** None (proprietary hosted service). A hosted MCP server is listed on the official MCP Registry as `io.onlinecompiler/compiler`.
+* **Website:** [onlinecompiler.io](https://onlinecompiler.io/?utm_source=awesome-sandbox)
+* **Launch Date:** **January 2025**.
+* **GitHub Stars:** N/A.
+* **License:** Proprietary; free tier of 100,000 runs a month, paid plans from $10 a month.
+* **Hosting:**
+  * **SaaS:** Yes.
+  * **Self-Hosted:** No.
+* **Underlying Technology:** Each run is a new **gVisor (runsc)** container from a read-only image, as a non-root user, with 512 MB of memory, 2 CPUs, at most 16 live processes and capped tmpfs for the workspace and temp space.
+* **Capabilities:**
+  * **Filesystem Access:** Ephemeral per run. Input files can be sent with the request, and files written to `$OUTPUT_DIR` are returned.
+  * **Network Access:** None.
+  * **Workload Suitability:** **Short-running** (30-second limit per run) and stateless; 46 languages, with C, C++ and Java compiled once per `run-tests` request.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
