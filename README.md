@@ -763,6 +763,8 @@ Finally, consider whether you need a tool tailored for a specific domain or a mo
   * **Recommended:** **microsandbox** is a powerful, general-purpose secure execution engine.  
     **Coder** and **Gitpod** are leading general-purpose Cloud Development Environments. **Apple Containerization** is the general-purpose choice for VM-backed containers on macOS specifically.
 
+To compare the published prices and limits of hosted sandbox providers side by side, see [Boxyard](https://boxyard.dev), a directory of cloud sandbox providers for AI agents.
+
 ## **8\. Contributing**
 
 This is a living document. The field of code sandboxing is evolving rapidly. If you see inaccuracies, have experience with these or other platforms, or want to suggest additions, please open an issue or submit a pull request. Your contributions are welcome!
