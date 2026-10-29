@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. Buddy: Sandbox VMs for AI Coding Agents](#420-buddy-sandbox-vms-for-ai-coding-agents)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -275,6 +276,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**Buddy Sandboxes** ↓](#420-buddy-sandbox-vms-for-ai-coding-agents) | Linux VMs (isolation tech undisclosed) | Oct 2026 | N/A (SDK) | Proprietary (platform) | No | Yes | Persistent (snapshots) | Full + public URLs/custom domains | Short & Long-Running |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +596,19 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. Buddy: Sandbox VMs for AI Coding Agents**
+* **Overview:** Buddy is a commercial platform that provides infrastructure for AI coding agents: sandbox VMs, app and website hosting, Git repositories, a package registry, domains, and CI/CD workflows. Sandboxes are managed through a REST API, an MCP server, an SDK, and the `bdy` CLI.  
+* **Website:** [buddy.works](https://buddy.works)  
+* **GitHub Stars:** N/A (proprietary platform)  
+* **License:** Proprietary.  
+* **Hosting:**  
+  * **SaaS:** Yes. Buddy is a hosted service with Free, Pro, and Hyper plans.  
+  * **Self-Hosted:** No.  
+* **Capabilities:**  
+  * **Filesystem Access:** Sandboxes support file management and integrate with Buddy's Git repositories and pipeline artifacts.  
+  * **Network Access:** Services running in a sandbox can be exposed through endpoints, including custom domains.  
+  * **Workload Suitability:** Sandboxes run commands, apps, and coding agents such as Claude, Codex, and Cursor, and can be connected to CI/CD pipelines (pipelines can be triggered by sandbox events).
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
