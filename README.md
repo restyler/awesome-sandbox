@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. Lizard Sandboxes: Managed Linux Sandboxes](#420-lizard-sandboxes-managed-linux-sandboxes)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -275,6 +276,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**Lizard Sandboxes** ↓](#420-lizard-sandboxes-managed-linux-sandboxes) | Firecracker (MicroVM runtime) | Not stated | See SDK repository | Apache-2.0 (SDK) / Proprietary (service) | No | Yes | Ephemeral; optional Persistent Volumes | Outbound access; token-gated HTTP ports | Code execution and stateful agent tasks |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +596,21 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. Lizard Sandboxes: Managed Linux Sandboxes**
+
+* **Overview:** Lizard Sandboxes, from Lizard (lizard.build), run code and shell commands in managed Linux environments. The Python and TypeScript clients share the Lizard SDK API.
+* **GitHub:** [lizard-build/lizard-sdk](https://github.com/lizard-build/lizard-sdk)
+* **Website:** [lizard.build/sandboxes](https://lizard.build/sandboxes)
+* **License:** The SDK is Apache-2.0; the hosted service is proprietary.
+* **Hosting:** Managed SaaS. The SDK repository does not provide a self-hosted control plane.
+* **Capabilities:**
+  * **Isolation:** A Firecracker runtime provides a microVM with its own kernel. The SDK exposes the runtime in sandbox metadata; check this field when choosing an isolation boundary.
+  * **Execution:** Shell commands return stdout, stderr and an exit code. The `CodeSandbox` API runs Python in a persistent Jupyter kernel on the interpreter template. JavaScript and bash calls use separate processes.
+  * **Filesystem Access:** Read and write files through the SDK. Files last for the sandbox's lifetime unless stored on an attached Persistent Volume. Snapshots and restore are also available.
+  * **Network Access:** Outbound network access and token-gated HTTPS URLs for exposed ports.
+  * **Workload Suitability:** Agent code execution, file processing, and development tasks that need state between calls. The caller sets the sandbox lifetime and must clean up resources.
+* **Sources:** [Sandbox guide](https://lizard.build/docs/sandboxes/), [SDK reference](https://github.com/lizard-build/lizard-sdk/blob/main/docs/sandboxes.md), and [SDK license](https://github.com/lizard-build/lizard-sdk/blob/main/LICENSE).
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
