@@ -276,7 +276,6 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
-
 | [**Lizard Sandboxes** ↓](#420-lizard-sandboxes-managed-linux-sandboxes) | Firecracker (MicroVM runtime) | Not stated | See SDK repository | Apache-2.0 (SDK) / Proprietary (service) | No | Yes | Ephemeral; optional Persistent Volumes | Outbound access; token-gated HTTP ports | Code execution and stateful agent tasks |
 
 ## **4\. In-Depth Platform Profiles**
