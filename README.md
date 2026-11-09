@@ -599,18 +599,18 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 
 ### **4.20. briq: MicroVM Services for Agents over MCP**
 
-* **Overview:** briq is a hosted service that lets an AI agent run sandboxes and real services (a sandbox with Python, Node and a shell, Postgres, Redis, a headless browser, an app from a GitHub repo, or any public OCI image) through a remote MCP server. The agent signs in with MCP OAuth and gets connection strings and URLs back, under a budget its person sets. A sandbox and the services it needs share one private network; every briq keeps its volume, sleeps when idle and wakes on the next call.
+* **Overview:** briq is a hosted service that lets an AI agent run sandboxes and real services (a sandbox with Python, Node and a shell, Postgres, Redis, a headless browser, an app from a GitHub repo, or any public OCI image) through a remote MCP server. The agent signs in with MCP OAuth and gets connection strings and URLs back, under a budget its person sets. A sandbox and the services in its stack share a private network; every briq keeps its volume, sleeps when idle and wakes on the next call.
 * **GitHub:** [briq-cloud/briq-mcp](https://github.com/briq-cloud/briq-mcp) (connection config and plugin manifests; the platform itself is proprietary)
 * **Website:** [briq.cloud](https://briq.cloud/)
 * **Launch Date:** **October 12, 2026**.
 * **License:** Proprietary, usage-billed service. The config repository is MIT.
 * **Hosting:**
-  * **SaaS:** Yes, exclusively. EU-hosted by default (Paris), with regions in North America and Asia-Pacific.
+  * **SaaS:** Yes, exclusively. Hosted in Paris.
   * **Self-Hosted:** No.
-* **Underlying Technology:** Each briq is its own **Firecracker microVM** running an unmodified OCI image, with a private network per team. Access is through an MCP server (Streamable HTTP) or a REST API; there is no SDK to install.
+* **Underlying Technology:** Each briq is its own **Firecracker microVM** running an unmodified OCI image, with private networking between services in the same stack. Access is through an MCP server (Streamable HTTP), a REST API, the CLI, or the TypeScript and Python SDKs.
 * **Capabilities:**
   * **Filesystem Access:** Persistent volume per service; files can be written and read through MCP tools, and a service or a whole stack can be forked with its disk.
-  * **Network Access:** Outbound open except mail ports. Inbound only through briq's router: an HTTPS URL (public or token-protected) or a TLS Postgres endpoint.
+  * **Network Access:** Outbound internet access, with mail ports blocked. Team secrets can be injected through a credential gateway for allowed destinations. Inbound access uses an HTTPS URL (public or token-protected) or a TLS Postgres endpoint.
   * **Workload Suitability:** **Sandboxes and long-running services**: a sandbox for scripts, tests and builds, and the databases, caches, browsers and app previews an agent keeps across sessions. Briqs sleep after an idle window the agent sets and wake on the next call or request; billing is per second against a per-agent budget.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
