@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. briq: MicroVM Services for Agents over MCP](#420-briq-microvm-services-for-agents-over-mcp)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -275,6 +276,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**briq** ↓](#420-briq-microvm-services-for-agents-over-mcp) | Firecracker (MicroVM) | Oct 2026 | N/A | Proprietary | No | Yes | Persistent (volume per service) | Full (outbound mail blocked) | Sandboxes & Long-Running Services |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +596,22 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. briq: MicroVM Services for Agents over MCP**
+
+* **Overview:** briq is a hosted service that lets an AI agent run sandboxes and real services (a sandbox with Python, Node and a shell, Postgres, Redis, a headless browser, an app from a GitHub repo, or any public OCI image) through a remote MCP server. The agent signs in with MCP OAuth and gets connection strings and URLs back, under a budget its person sets. A sandbox and the services in its stack share a private network; every briq keeps its volume, sleeps when idle and wakes on the next call.
+* **GitHub:** [briq-cloud/briq-mcp](https://github.com/briq-cloud/briq-mcp) (connection config and plugin manifests; the platform itself is proprietary)
+* **Website:** [briq.cloud](https://briq.cloud/)
+* **Launch Date:** **October 12, 2026**.
+* **License:** Proprietary, usage-billed service. The config repository is MIT.
+* **Hosting:**
+  * **SaaS:** Yes, exclusively. Hosted in Paris.
+  * **Self-Hosted:** No.
+* **Underlying Technology:** Each briq is its own **Firecracker microVM** running an unmodified OCI image, with private networking between services in the same stack. Access is through an MCP server (Streamable HTTP), a REST API, the CLI, or the TypeScript and Python SDKs.
+* **Capabilities:**
+  * **Filesystem Access:** Persistent volume per service; files can be written and read through MCP tools, and a service or a whole stack can be forked with its disk.
+  * **Network Access:** Outbound internet access, with mail ports blocked. Team secrets can be injected through a credential gateway for allowed destinations. Inbound access uses an HTTPS URL (public or token-protected) or a TLS Postgres endpoint.
+  * **Workload Suitability:** **Sandboxes and long-running services**: a sandbox for scripts, tests and builds, and the databases, caches, browsers and app previews an agent keeps across sessions. Briqs sleep after an idle window the agent sets and wake on the next call or request; billing is per second against a per-agent budget.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
