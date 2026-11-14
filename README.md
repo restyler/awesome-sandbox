@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. Spawnbox: Self-Hosted Firecracker Sandboxes for AI Agents](#420-spawnbox-self-hosted-firecracker-sandboxes-for-ai-agents)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -275,6 +276,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**Spawnbox** ↓](#420-spawnbox-self-hosted-firecracker-sandboxes-for-ai-agents) | Firecracker (MicroVM), gVisor fallback | Nov 2026 | <10 | Apache-2.0 | Yes (Only) | No | Persistent (pause/resume, volumes) | Configurable (allowlist + secret proxy) | Short & Long-Running |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +596,23 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. Spawnbox: Self-Hosted Firecracker Sandboxes for AI Agents**
+
+* **Overview:** Spawnbox is an open-source sandbox server for AI agent platforms that you install on your own Linux servers. It covers the same ground as hosted agent sandboxes such as e2b or Daytona (run code, read and write files, open a terminal, expose a web app), but the whole control plane runs on your hardware. The project is in early development and its README warns against production use or running untrusted code with it yet.
+* **GitHub:** [TulipFarm/spawnbox](https://github.com/TulipFarm/spawnbox)
+* **Website:** [spawnbox.tulipfarm.ai](https://spawnbox.tulipfarm.ai)
+* **Launch Date:** First release (v0.1.0) on **November 8, 2026**.
+* **GitHub Stars:** Fewer than 10; the project is new.
+* **License:** **Apache-2.0**.
+* **Hosting:**
+  * **SaaS:** No.
+  * **Self-Hosted:** Yes, exclusively. A one-line installer sets it up on a Linux x86_64 host; several hosts can be joined into one fleet with a primary and workers.
+* **Underlying Technology:** Each sandbox is a **Firecracker microVM**. On a host without KVM, each sandbox is a **gVisor** container instead. Sandboxes start from saved memory snapshots of templates, and a paused sandbox resumes from its snapshot.
+* **Capabilities:**
+  * **Filesystem Access:** Persistent. A sandbox can be paused to disk (memory, processes and files) and resumed, kept until deleted, forked into up to 16 running copies, or saved as a new template. Named volumes keep files after a sandbox is deleted.
+  * **Network Access:** Configurable per sandbox: all hosts, only listed hosts, or none, with speed limits. Secrets are stored encrypted and the code in the sandbox only sees a placeholder; Spawnbox adds the real value to HTTPS requests for allowed hosts, the credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code).
+  * **Workload Suitability:** **Short and long-running** agent sessions. It is driven by an HTTP API and a `spawnbox` CLI; TypeScript and Python SDKs are planned but not available yet. It also has tenants with their own API keys and quotas, an event log, and per-tenant usage metering for teams that host sandboxes for their own customers.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
