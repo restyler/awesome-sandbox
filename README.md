@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. CubePod: Persistent Writable RootFS MicroVMs for AI Agents](#420-cubepod-persistent-writable-rootfs-microvms-for-ai-agents)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -275,6 +276,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**CubePod** ↓](#420-cubepod-persistent-writable-rootfs-microvms-for-ai-agents) | Kata Containers (MicroVM) | Nov 2026 | 14 | Apache-2.0 | Yes (Only) | No | Persistent (Dual Block RootFS + Workspace) | Configurable (allow/deny + mTLS secret proxy) | Short & Long-Running |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +596,22 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. CubePod: Persistent Writable RootFS MicroVMs for AI Agents**
+
+* **Overview:** CubePod is an open-source, Kubernetes-native execution platform built for long-lived AI agents that install system packages (`apt`, `pip`, `npm`, compilers), run browsers/GUIs, and hibernate between turns. Standard container sandboxes discard `/usr` and `/etc` changes on restart, while full VM memory snapshots require gigabyte-scale state transfers. CubePod addresses this by pairing Kata Containers MicroVMs with two independent CSI Raw Block volumes (`rootfs-pvc` for the OverlayFS `upperdir` and `workspace-pvc` for `/workspace`), injected at boot via a single-threaded Rust PID 1 mounter (`podd-init`) using `pivot_root(2)` so standard OCI images work without host Kubelet patches.
+* **GitHub:** [cubeplexai/cubepod](https://github.com/cubeplexai/cubepod)
+* **Website:** [cubepod.dev](https://cubepod.dev)
+* **Launch Date:** Open-sourced in **November 2026**.
+* **GitHub Stars:** 14.
+* **License:** **Apache-2.0**.
+* **Hosting:**
+  * **SaaS:** No.
+  * **Self-Hosted:** Yes, exclusively, via Helm on Kubernetes (Kata Containers + CSI Raw Block storage such as Longhorn V2 SPDK or OpenEBS Mayastor) or single-node Docker Compose for local development.
+* **Capabilities:**
+  * **Filesystem Access:** **Dual-volume persistent.** System-level package installations (`rootfs-pvc`) and project files (`workspace-pvc`) persist independently on raw ext4 block devices. Operators can increment `rootfsGeneration` to reset or upgrade a broken OS layer while keeping `/workspace` intact, or clone both volumes in under a second via Copy-on-Write CSI block snapshots (`POST /sandboxes/{id}/fork`).
+  * **Network Access:** Configurable allow/deny egress rules enforced via `nftables` and an egress sidecar (`cubepod-egress`). External API keys never enter the sandbox environment or memory; the sandbox receives opaque `cpodref_` placeholders that the egress proxy swaps over per-sandbox mTLS only for allowlisted hosts.
+  * **Workload Suitability:** **Both short-lived and long-running stateful** agent workloads. Pre-attached standby MicroVMs (`PodWarmPool`) support sub-50ms claims, while idle sandboxes `fsfreeze` and delete the Pod to drop CPU/RAM usage to zero and resume on any node in ~1 second by re-attaching the block volumes. Exposes a wire-compatible E2B REST/SSE API alongside native Python, TypeScript, and Go SDKs.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
