@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. Platinum: Cloud Hypervisor MicroVMs with Memory-Preserving Stop](#420-platinum-cloud-hypervisor-microvms-with-memory-preserving-stop)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -275,6 +276,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**Platinum** ↓](#420-platinum-cloud-hypervisor-microvms-with-memory-preserving-stop) | Cloud Hypervisor (MicroVM) | Oct 2026 | N/A | MIT (SDK) / Proprietary (platform) | Licensed on-prem (not self-serve) | Yes | Persistent (stop keeps memory) | Configurable (per-sandbox egress filter) | Short & Long-Running |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +596,21 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. Platinum: Cloud Hypervisor MicroVMs with Memory-Preserving Stop**
+
+* **Overview:** Platinum is a managed sandbox service for AI agents in which each sandbox is a Cloud Hypervisor microVM on bare metal with its own kernel, disk and network. Its distinguishing lifecycle choice is that `stop` keeps memory and running processes, and a stopped sandbox bills only its disk; `start` resumes it where it was ([docs](https://www.platinum.dev/docs/sandboxes)).
+* **Website:** [platinum.dev](https://www.platinum.dev) · [docs](https://www.platinum.dev/docs)
+* **Launch Date:** Public sign-ups opened in **October 2026**.
+* **GitHub Stars:** N/A. The platform's source is not public; the TypeScript SDK is published on npm as [`@platinum-dev/sdk`](https://www.npmjs.com/package/@platinum-dev/sdk).
+* **License:** The SDK is **MIT**. The hosted platform is a proprietary, prepaid, per-second-billed service ([billing](https://www.platinum.dev/docs/billing)).
+* **Hosting:**
+  * **SaaS:** Yes. Regions are `eu-west` by default, with US by organization grant ([regions](https://www.platinum.dev/docs/regions)).
+  * **Self-Hosted:** Licensed on-prem deployment by arrangement, not a self-serve download.
+* **Capabilities:**
+  * **Filesystem Access:** Persistent. Stop and start keep the disk and, outside the documented disk-only cases, memory. Snapshots, clones and forks copy the disk only: a fork cold-boots its child without the parent's memory or processes ([snapshots](https://www.platinum.dev/docs/snapshots)). Separate versioned volumes can be mounted into several sandboxes ([volumes](https://www.platinum.dev/docs/volumes)).
+  * **Network Access:** Full outbound access by default, with per-sandbox outbound filtering, signed preview URLs and raw TCP exposure ([networking](https://www.platinum.dev/docs/networking)). Organization secrets can be injected into request headers by the egress proxy so the sandbox never holds them ([secrets](https://www.platinum.dev/docs/secrets)).
+  * **Workload Suitability:** **Short and long-running**, with no lifetime deadline; suited to agents that pause between steps and resume with their in-memory state. Boot is sub-second ([platinum.dev](https://www.platinum.dev)). It offers migration guides for [E2B](https://www.platinum.dev/docs/migrate-from-e2b) and [Modal](https://www.platinum.dev/docs/migrate-from-modal) code.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
