@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. virtx: Disposable libkrun MicroVMs Driven From Your Own Code](#420-virtx-disposable-libkrun-microvms-driven-from-your-own-code)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -594,6 +595,23 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. virtx: Disposable libkrun MicroVMs Driven From Your Own Code**
+
+* **Overview:** virtx runs tasks in disposable Linux microVMs that you start and control from Python, Node.js or Rust code. It targets two jobs: work with heavy dependencies you don't want installed on your own machine, and code you don't want running on it at all, such as the commands an AI agent decides to run. Whatever a VM installs or changes is discarded when the sandbox is removed, unless it was written to a volume you kept. The same client API talks to a local server, a self-hosted remote server, or the hosted virtx cloud.
+* **GitHub:** [brekkylab/virtx](https://github.com/brekkylab/virtx)
+* **Website:** [virtx.sh](https://virtx.sh)
+* **Launch Date:** First packages published on PyPI on **October 1, 2026**; v0.2.0 released November 18, 2026.
+* **GitHub Stars:** 5.
+* **License:** **Apache-2.0**.
+* **Hosting:**
+  * **SaaS:** Optional. virtx cloud is pay as you go ($0.0504 per vCPU-hour, $0.0162 per GiB-hour of memory).
+  * **Self-Hosted:** Yes. `Client.spawn()` runs `virtx-stdio` as a child process on the developer's machine with nothing to install or keep running, and `virtx-server-tcp` can run on another machine shared by a team.
+* **Underlying Technology:** Each sandbox is a **libkrun-based microVM** with its own Linux kernel, on the host's hardware virtualization: KVM on Linux, Hypervisor.framework on macOS (Apple silicon), and the Windows Hypervisor Platform on Windows 11. No Docker or daemon is required. The root filesystem is a writable layer over a read-only OCI image, so images from Docker Hub or any registry work, or can be built from a recipe or a Dockerfile.
+* **Capabilities:**
+  * **Filesystem Access:** Files can be read, written, copied and removed from code without a shell. Volumes persist after a sandbox is removed, can be mounted read-write or read-only into several sandboxes at once, and can include read-only mounts of Notion, Google Drive or OneDrive.
+  * **Network Access:** A sandbox's network can be cut off entirely, while services running inside (a web server, SSH, a VNC desktop, a database) can still be reached at an address on the host.
+  * **Workload Suitability:** Both **one-off jobs** (build an image, run a command, stream its output, remove the sandbox) and **longer agent sessions** that keep state in volumes. The host GPU can be passed in through Vulkan for deep learning work, and a skill lets Claude Code and Codex drive sandboxes directly.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
