@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. Homemade: A Full Linux VM per Project for AI Coding Agents](#420-homemade-a-full-linux-vm-per-project-for-ai-coding-agents)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -275,6 +276,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**Homemade** ↓](#420-homemade-a-full-linux-vm-per-project-for-ai-coding-agents) | Virtual machine (own kernel) | 2026 | N/A | Proprietary | No | Yes | Persistent | Full | Long-Running & Stateful |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +596,22 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. Homemade: A Full Linux VM per Project for AI Coding Agents**
+
+* **Overview:** Homemade gives each project or task its own Linux VM with its own kernel, disk and network address, so a coding agent can install packages, run servers and break things without touching anything else. Claude Code, Codex, OpenCode, pi, Kimi and Grok are installed and signed in, every port gets a preview URL, and VMs can be created, driven and deleted from a CLI, a remote MCP server or an HTTP API.
+* **Website:** [homemade.dev](https://www.homemade.dev/ai-agent-sandbox)
+* **GitHub:** [usehomemade/homemade](https://github.com/usehomemade/homemade) (CLI binary releases only; the platform is proprietary)
+* **Launch Date:** Not specified.
+* **GitHub Stars:** N/A (no public source repository).
+* **License:** **Proprietary.** Hobby is free with 25 VM-hours a month; Pro is $20/mo with $20 of usage included, then billed per second by size.
+* **Hosting:**
+  * **SaaS:** Yes, exclusively.
+  * **Self-Hosted:** No. Dedicated hosts are available on Enterprise.
+* **Capabilities:**
+  * **Filesystem Access:** Persistent. A VM sleeps when idle and wakes with its files, terminals and running processes intact; sleeping VMs do not use VM-hours.
+  * **Network Access:** Full. Every listening port gets a preview URL that can be public, team only or owner only.
+  * **Workload Suitability:** Long-running, stateful agent work on a real project. Not built for running thousands of short snippets per second inside another product, and there are no GPU sizes.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
