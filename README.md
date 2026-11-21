@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. Quivvo: Persistent Firecracker MicroVMs for Agent Harnesses](#420-quivvo-persistent-firecracker-microvms-for-agent-harnesses)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -275,6 +276,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**Quivvo** ↓](#420-quivvo-persistent-firecracker-microvms-for-agent-harnesses) | Firecracker (MicroVM) | Nov 2026 | N/A | Proprietary | No | Yes | Persistent | Full | Long-Running & Stateful |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +596,23 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. Quivvo: Persistent Firecracker MicroVMs for Agent Harnesses**
+
+* **Overview:** Quivvo gives each agent harness, such as Claude Code or Codex, its own Linux machine, driven from a CLI, a REST API or a hosted MCP server. Machines suspend themselves when idle and bill by the second.
+* **GitHub:** None. The platform is closed source; the CLI is on npm as `quivvo`, with SDKs `quivvo-sdk` (TypeScript, MIT) and `quivvo` (Python).
+* **Website:** [tryquivvo.com](https://tryquivvo.com)
+* **Launch Date:** November 2026
+* **GitHub Stars:** N/A
+* **License:** Proprietary service. The TypeScript SDK is MIT.
+* **Hosting:**
+  * **SaaS:** Yes, exclusively. Machines run in Amsterdam or Ashburn, chosen per machine.
+  * **Self-Hosted:** No.
+* **Underlying Technology:** Firecracker microVMs running Debian 13, each with its own kernel and root. Six agent harnesses come installed: Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI and GitHub Copilot CLI.
+* **Capabilities:**
+  * **Filesystem Access:** Persistent. Everything under `/data` survives stops, restarts and resizes; snapshots copy it, and forks start new machines from it.
+  * **Network Access:** Full outbound. One published port at a time gets a public HTTPS URL, public or behind a token.
+  * **Workload Suitability:** Long-running and stateful. A machine suspends after 30 idle minutes, keeping memory when it can, and background jobs run for up to 24 hours after you disconnect.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
