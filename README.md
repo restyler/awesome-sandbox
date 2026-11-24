@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. Sandfort: Self-Hosted Sandbox Server for AI-Generated Code](#420-sandfort-self-hosted-sandbox-server-for-ai-generated-code)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -230,6 +231,7 @@ Containerization represents the most widely adopted approach to application isol
   - [**Replit** ↓](#45-replit-collaborative-browser-based-development) - uses containers for coding environments
   - [**Gitpod** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development workspaces
   - [**Coder** ↓](#49-other-notable-platforms--cloud-development-environments-cdes) - uses containers for development environments
+  - [**Sandfort** ↓](#420-sandfort-self-hosted-sandbox-server-for-ai-generated-code) - self-hosted sandbox server for AI-generated code, using Docker containers with seccomp, dropped capabilities and an optional gVisor runtime
   - **Kubernetes** - the foundation of modern container orchestration
   - **Docker Hub** - the largest container registry with billions of downloads
 
@@ -275,6 +277,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**Sandfort** ↓](#420-sandfort-self-hosted-sandbox-server-for-ai-generated-code) | Containers (Docker, optional gVisor) | Not specified | Not specified | FSL-1.1-Apache-2.0 (source-available) | Yes (Primary) | No | Volumes and snapshots | Not specified | Not specified |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +597,24 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. Sandfort: Self-Hosted Sandbox Server for AI-Generated Code**
+
+* **Overview:** Sandfort is a self-hosted sandbox server for running AI-generated code. Each sandbox is a Docker container hardened with seccomp and dropped capabilities, with an optional gVisor runtime. A Kata Containers microvm tier is also available on hosts with KVM. It offers a REST API, a Python SDK, a TypeScript SDK (a subset of the Python SDK), a CLI and an MCP server.
+* **GitHub:** [malinele/sandfort](https://github.com/malinele/sandfort)
+* **Website:** [sandfort.dev](https://sandfort.dev), documentation at [docs.sandfort.dev](https://docs.sandfort.dev)
+* **Launch Date:** Not specified. The current version is 0.1.0.
+* **GitHub Stars:** Not specified.
+* **License:** **FSL-1.1-Apache-2.0**, which is source-available rather than open source. Each version converts to Apache-2.0 after two years.
+* **Hosting:**
+  * **SaaS:** No.
+  * **Self-Hosted:** Yes, this is the intended deployment model.
+* **Capabilities:**
+  * **Filesystem Access:** Snapshots (without forking) and volumes.
+  * **Network Access:** Not specified.
+  * **Workload Suitability:** Not specified.
+  * **Management:** Per-org quotas, a hash-chained audit log, RBAC, OIDC SSO and signed webhooks.
+* **Known Limits:** The project is at version 0.1.0 and a sandbox runs on a single node. Sandbox nodes expose the Docker socket, so dedicated nodes are recommended. There is no built-in TLS. The filesystem API has no chmod, search or replace, and the git API has no branch or checkout. GPU support and pricing are not specified.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
