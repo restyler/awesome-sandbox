@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. Edera: Per-Pod VMs on a Type-1 Hypervisor](#420-edera-per-pod-vms-on-a-type-1-hypervisor)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -275,6 +276,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**Edera** ↓](#420-edera-per-pod-vms-on-a-type-1-hypervisor) | Type-1 Hypervisor (Xen or KVM, per-pod VMs) | Sep 2024 | N/A | Proprietary (free single-node tier) | Yes (Only) | No | Persistent | Full (Kubernetes networking) | Long-Running & Stateful |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +596,23 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+ 
+### **4.20. Edera: Per-Pod VMs on a Type-1 Hypervisor**
+
+* **Overview:** Edera is a container runtime for Kubernetes that runs each pod in its own "zone": a lightweight virtual machine with a dedicated Linux kernel, on a paravirtualized type-1 hypervisor. A pod opts in with `runtimeClassName: edera`, and the container images run unmodified. It sits in the same slot as Kata Containers and gVisor: infrastructure you install on your own nodes, not a hosted sandbox API. It also works as the isolation layer underneath [Kubernetes Agent Sandbox](https://docs.edera.dev/guides/deployment/agent-sandbox/).
+* **GitHub:** [edera-dev](https://github.com/edera-dev) (the runtime is proprietary; open-source components include [krata](https://github.com/edera-dev/krata), a Xen control plane in Rust, and [am-i-isolated](https://github.com/edera-dev/am-i-isolated), an isolation posture checker)
+* **Website:** [edera.dev](https://edera.dev), docs at [docs.edera.dev](https://docs.edera.dev)
+* **Technology:** **Type-1 Hypervisor** - Zones run on Xen (the default) or KVM. Each zone has its own kernel, so a kernel exploit inside one pod reaches that zone's kernel, not the node or other pods. The design and benchmarks are described in [Goldilocks Isolation: High Performance VMs with Edera](https://arxiv.org/abs/2501.04580) (arXiv, 2025).
+* **Launch Date:** **September 2024** (Edera Protect Kubernetes).
+* **License:** **Proprietary**. A free single-node tier, [EderaON](https://on.edera.dev), is available for evaluation.
+* **Hosting:**
+  * **SaaS:** No.
+  * **Self-Hosted:** Yes, exclusively. Installed with a Helm chart onto existing Kubernetes clusters, including managed services such as EKS. Nodes need bare metal or a VM that exposes nested virtualization.
+* **Capabilities:**
+* **Filesystem Access:** **Persistent** - Standard Kubernetes volumes and storage.
+* **Network Access:** **Full** - Standard Kubernetes networking, so NetworkPolicies and CNI-based egress controls apply as they would to any pod.
+* **Workload Suitability:** **Long-running and stateful** workloads, including AI agents, multi-tenant platforms and GPU workloads, where a shared kernel is not an acceptable boundary. Per Edera's paper, startup adds roughly 650ms over Docker's ~177ms, so it suits per-session or warm-pooled sandboxes better than sub-second per-call execution.
+* **Unique Value Proposition:** Edera gives Kubernetes pods VM-level isolation without changing images, tooling or pod specs beyond the runtime class. Where Kata Containers runs a KVM-based VMM (QEMU, Cloud Hypervisor or Firecracker) per pod, Edera's default backend is a paravirtualized Xen hypervisor, and it adds GPU isolation for AI workloads.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
