@@ -21,6 +21,10 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [2.4. Containerization: Namespace-Based Isolation](#24-containerization-namespace-based-isolation)
     - [Docker/OCI Containers](#dockeroci-containers)
     - [Incus System Containers](#incus-system-containers)
+  - [2.5. OS-Native Process Sandboxing: No Container, No VM](#25-os-native-process-sandboxing-no-container-no-vm)
+    - [bubblewrap](#bubblewrap)
+    - [macOS Seatbelt](#macos-seatbelt)
+    - [Landlock](#landlock)
 - [3. Feature Matrix: At-a-Glance Comparison](#3-feature-matrix-at-a-glance-comparison)
 - [4. In-Depth Platform Profiles](#4-in-depth-platform-profiles)
   - [4.1. e2b: The AI Agent Sandbox Runtime](#41-e2b-the-ai-agent-sandbox-runtime)
@@ -43,6 +47,9 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
   - [4.20. Brig: Open-Source MicroVMs for Coding Agents on macOS and Linux](#420-brig-open-source-microvms-for-coding-agents-on-macos-and-linux)
+  - [4.21. Kubernetes Agent Sandbox: Declarative Sandboxes on Your Own Cluster](#421-kubernetes-agent-sandbox-declarative-sandboxes-on-your-own-cluster)
+  - [4.22. Anthropic Sandbox Runtime (srt): OS-Native Sandboxing for Agents and MCP Servers](#422-anthropic-sandbox-runtime-srt-os-native-sandboxing-for-agents-and-mcp-servers)
+  - [4.23. Cloudflare Sandbox SDK: Per-User Linux VMs Driven from a Worker](#423-cloudflare-sandbox-sdk-per-user-linux-vms-driven-from-a-worker)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -80,6 +87,9 @@ The following table provides a comparative overview of the core sandboxing techn
 | [**nsjail** ↓](#nsjail) | Process-Level | ~50ms | Very Low | Any Linux host | High (filtered syscalls) | Code execution, long-running processes |
 | [**Docker/OCI** ↓](#dockeroci-containers) | Namespace-Level | ~10-50ms | Very Low | Any Linux host | Full Linux | Development, CI/CD, application deployment |
 | [**Incus** ↓](#incus-system-containers) | System Container / QEMU VM | ~1-3s (containers), ~3-10s (VMs) | Low (containers), Medium (VMs) | Any Linux host (containers) or KVM/QEMU (VMs) | Full Linux (full init system, dedicated kernel in VM mode) | AI agent sandboxing, development environments, multi-tenant isolation |
+| [**bubblewrap** ↓](#bubblewrap) | Process-Level (namespaces) | ~Process spawn | Very Low | Linux with unprivileged user namespaces | High (host kernel, any Linux binary) | Local agent and tool sandboxing, Flatpak apps |
+| [**Seatbelt** ↓](#macos-seatbelt) | Process-Level (kernel policy) | ~Process spawn | Very Low | macOS | Full (native macOS processes) | Local agent sandboxing on Macs, browser renderers |
+| [**Landlock** ↓](#landlock) | Process-Level (LSM) | ~Instant (process restricts itself) | Very Low | Linux 5.13+ | Full (native processes) | Tools and agents that restrict their own access |
 | [**WebAssembly** ↓](#webassembly-wasm) | Runtime-Level | ~10ms | Very Low | Any platform | Limited (WASM modules) | Edge computing, plugin systems |
 | [**V8 Isolates** ↓](#v8-isolates) | Runtime-Level | ~1ms | Very Low | Any platform | JavaScript only | Edge functions, serverless JavaScript |
 
@@ -249,6 +259,49 @@ Containerization represents the most widely adopted approach to application isol
   - **Canonical** - Incus's predecessor LXD powers Ubuntu's container infrastructure
   - **Enterprise environments** - used for multi-tenant hosting and development environments
 
+### **2.5. OS-Native Process Sandboxing: No Container, No VM**
+
+The lightest option of all is not to build an environment for the code but to restrict the process where it already runs, with primitives the host OS ships. There is no image, no guest kernel and no daemon: the sandboxed process sees the real filesystem and toolchain, minus whatever the policy takes away. This is the layer local coding agents use for per-command sandboxing on a developer's machine, and the one wrappers such as [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing), [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) and [**srt** ↓](#422-anthropic-sandbox-runtime-srt-os-native-sandboxing-for-agents-and-mcp-servers) build on. The trade-off is the shared host kernel: a kernel exploit escapes all of them, which is why untrusted multi-tenant code still belongs in a microVM.
+
+#### **bubblewrap**
+
+* **GitHub:** [containers/bubblewrap](https://github.com/containers/bubblewrap)
+
+[bubblewrap](https://github.com/containers/bubblewrap) (`bwrap`) is the unprivileged sandboxing tool behind Flatpak. It builds a throwaway container for a single command out of Linux user namespaces, without root and without a container runtime.
+
+* **Mechanism:** Always creates a new mount namespace whose root is an empty tmpfs; the caller bind-mounts in only the paths the process should see, read-only or read-write. User, PID, IPC, UTS and network namespaces are optional (`--unshare-net` leaves only a loopback device), and a seccomp filter can be passed in to block syscalls.
+* **Advantages:** Starts as fast as a process, needs no privileges on distributions with unprivileged user namespaces, and is packaged everywhere. It deliberately has no policy language: it is a building block, and the tool around it decides what to mount.
+* **Limitations:** Linux only, and some hardened distributions restrict unprivileged user namespaces. Network control is all or nothing; per-domain filtering needs a proxy outside the sandbox.
+* **Adoption:** This technology is used by:
+  - **Flatpak** - sandboxes desktop applications
+  - **Anthropic Sandbox Runtime (srt)** - its Linux backend, with network access routed through host-side proxies
+  - **Amazing Sandbox** - one of its three backends
+* **License:** LGPL-2.0-or-later; ~9.6k stars, actively maintained (v0.13 in 2026).
+
+#### **macOS Seatbelt**
+
+* **Documentation:** `man sandbox-exec`; the profile language is described in the community [Apple Sandbox Guide](https://reverse.put.as/wp-content/uploads/2011/09/Apple-Sandbox-Guide-v1.0.pdf)
+
+Seatbelt is the macOS kernel sandbox that App Store apps run under. Command-line tools reach it through `sandbox-exec`, which runs a process under a profile written in SBPL, a small Scheme-like language of allow and deny rules for file paths, network endpoints, IPC and process operations.
+
+* **Mechanism:** The kernel checks every covered operation of the process tree against the profile. A typical agent profile denies writes outside the project and temp directories and allows network only to a localhost proxy port.
+* **Advantages:** Built into every Mac, no dependencies, no VM, near-zero overhead, and violations are logged by the system.
+* **Limitations:** `sandbox-exec` has been marked deprecated in its man page for years and SBPL is not officially documented, although Apple's own services and major third-party tools still depend on it. Like any same-kernel sandbox, it does not protect against kernel bugs.
+* **Adoption:** This technology is used by:
+  - **Chrome** - renderer process sandbox on macOS
+  - **OpenAI Codex CLI** and **Anthropic srt** - per-command sandboxing of coding agents on macOS
+  - **Amazing Sandbox** - its macOS backend
+
+#### **Landlock**
+
+* **Documentation:** [docs.kernel.org/userspace-api/landlock.html](https://docs.kernel.org/userspace-api/landlock.html)
+
+Landlock is a Linux security module, merged in kernel 5.13 (2021), that lets an unprivileged process restrict itself and all of its children. Unlike bubblewrap it builds no new environment: the process keeps its normal view of the system and drops the rights it will not need.
+
+* **Mechanism:** The process creates a ruleset of allowed filesystem accesses per path hierarchy (and, since kernel 6.7, allowed TCP bind and connect ports) and applies it irrevocably to itself; everything outside the ruleset is denied for the rest of the process tree's life.
+* **Advantages:** No root, no namespaces, no setup cost, and restrictions can be stacked. A natural fit for a tool that wants to sandbox the commands it spawns, often combined with seccomp.
+* **Limitations:** Coverage grows with each kernel ABI version, so what can be restricted depends on the host kernel; network rules are port-based, not domain-based.
+
 ## **3\. Feature Matrix: At-a-Glance Comparison**
 
 The following table provides a high-level, comparative overview of the leading code sandboxing solutions, allowing for a quick assessment of their core attributes and positioning.
@@ -276,7 +329,10 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
-| [**Brig** ↓](#420-brig-open-source-microvms-for-coding-agents-on-macos-and-linux) | MicroVMs (Hypervisor.framework or Virtualization.framework on macOS, urunc over KVM on Linux) | Aug 2026 (public), Sep 2026 (v0.2.0) | 107 | Apache-2.0 | Yes (Only) | No | Persistent guest home + one named project read-write | `shared` / `isolated` / `offline` | Short & Long-Running (agent sessions) |
+| [**Brig** ↓](#420-brig-open-source-microvms-for-coding-agents-on-macos-and-linux) | MicroVMs (Hypervisor.framework or Virtualization.framework on macOS, urunc over KVM on Linux) | Aug 2026 (public), Sep 2026 (v0.2.0) | 280+ | Apache-2.0 | Yes (Only) | No | Persistent guest home + one named project read-write | `shared` / `isolated` / `offline` | Short & Long-Running (agent sessions) |
+| [**Kubernetes Agent Sandbox** ↓](#421-kubernetes-agent-sandbox-declarative-sandboxes-on-your-own-cluster) | Orchestrator for gVisor / Kata Containers (via `RuntimeClass`) | Nov 2025 (v0.1.0), Aug 2026 (v1.0) | 4.7k+ | Apache-2.0 | Yes (Only) | No (runs on any cluster, including managed Kubernetes) | Persistent (per-sandbox volumes) | Full (Kubernetes networking, optional Sandbox Router) | Long-Running & Stateful |
+| [**srt** ↓](#422-anthropic-sandbox-runtime-srt-os-native-sandboxing-for-agents-and-mcp-servers) | OS-native (Seatbelt on macOS, bubblewrap on Linux) | Oct 2025 | 7.3k+ | Apache-2.0 | Yes (Only) | No | Writes allow-listed, reads deny-listed | Denied by default, per-domain allowlist via host proxies | Short & Long-Running (local processes) |
+| [**Cloudflare Sandbox SDK** ↓](#423-cloudflare-sandbox-sdk-per-user-linux-vms-driven-from-a-worker) | Linux VMs (Cloudflare Containers) owned by Durable Objects | Jun 2025 (beta), Oct 2026 (SDK v1.0) | 1.1k+ (SDK) | Apache-2.0 (SDK) / Proprietary (platform) | No | Yes | Persistent per sandbox; R2 backups, S3 mounts | On or off per sandbox, egress decided by the Worker | Short & Long-Running |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -603,7 +659,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 * **GitHub:** [brig-sh/brig](https://github.com/brig-sh/brig) (the `brig` CLI and the `brigd` session daemon), [brig-sh/hull](https://github.com/brig-sh/hull) (the microVM runtime on macOS), [brig-sh/hvi-vmm](https://github.com/brig-sh/hvi-vmm) (the microVMM hull drives on its `hvi` backend). On Linux, Brig drives `nerdctl` over containerd with the `urunc` shim, three projects it does not own.
 * **Website:** [brig.sh](https://brig.sh)
 * **Launch Date:** The repositories have been public since 12 August 2026. v0.2.0, the first stable release, shipped on 15 September 2026. hull and hvi-vmm version separately from the CLI.
-* **GitHub Stars:** 107 on brig-sh/brig as of 16 September 2026, and growing.
+* **GitHub Stars:** About 280 on brig-sh/brig as of November 2026, with 19 contributors.
 * **License:** **Apache-2.0** across all three components, the VMM included.
 * **Hosting:**
   * **SaaS:** No.
@@ -615,6 +671,58 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Network Access:** Three modes. `shared` is the default and has full egress. `isolated` gives the sandbox a network of its own, and `offline` gives it none. Egress policies and `--network isolated` are enforced on hull's `hvi` backend only; Brig refuses a policy-bound run on any other backend rather than run it unenforced. Credentials are not inherited: the sandbox boots with none and the agent authenticates inside the guest, so a host token is never present unless it is delivered deliberately. Guest images are cosign-signed; Brig warns on an image it cannot verify and boots it anyway, until you set `BRIG_VERIFY=require`.
   * **Workload Suitability:** Agent sessions, short or long. Sessions are named and resumable. `brig run claude` remounts the project the session used last, and `brig run claude@refactor` starts a second independent session of the same agent. Stopping or removing one is explicit rather than automatic, and neither touches the guest home or the project.
   * **Agent Profiles:** Eight profiles ship built into the binary: Claude Code, Claude Desktop, Codex, Cursor, Gemini, Grok, opencode and a plain Ubuntu base. Claude Desktop is graphical, so it needs macOS and the `vz` backend and does not run on Linux. Anything else comes in as an OCI image, with or without a profile of your own.
+
+### **4.21. Kubernetes Agent Sandbox: Declarative Sandboxes on Your Own Cluster**
+
+* **Overview:** Agent Sandbox is a Kubernetes SIG Apps project that adds a `Sandbox` custom resource and controller: a single, stateful pod with a stable identity and persistent storage, which fits an agent's workspace better than a Deployment or a StatefulSet. It is an orchestrator rather than an isolation layer: the pod runs under whatever secure runtime the cluster offers, typically gVisor or Kata Containers selected through `RuntimeClass`. For teams that already run Kubernetes, it is the self-hosted answer to e2b-style sandbox APIs.
+* **GitHub:** [kubernetes-sigs/agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox)
+* **Website:** [agent-sandbox.sigs.k8s.io](https://agent-sandbox.sigs.k8s.io)
+* **Launch Date:** Repository created August 2025; v0.1.0 in November 2025; v1.0.0 on 28 August 2026, with patch releases roughly weekly since.
+* **GitHub Stars:** Approximately 4,750.
+* **License:** **Apache-2.0**.
+* **Hosting:**
+  * **SaaS:** No.
+  * **Self-Hosted:** Yes, exclusively, on any Kubernetes 1.25+ cluster, including managed ones.
+* **Capabilities:**
+  * **Filesystem Access:** Persistent volumes per sandbox that survive restarts, plus whatever the pod spec mounts.
+  * **Network Access:** Standard Kubernetes networking and network policies; an optional Sandbox Router (an HTTP reverse proxy) routes SDK and client traffic to sandbox pods.
+  * **Workload Suitability:** **Long-running and stateful**: sandboxes can be paused, resumed and scheduled for deletion. `SandboxTemplate`, `SandboxWarmPool` and `SandboxClaim` extensions keep a pool of pre-warmed sandboxes so a new agent session does not wait for pod startup.
+  * **SDKs:** Go (`sigs.k8s.io/agent-sandbox/clients/go/sandbox`) and Python (`pip install k8s-agent-sandbox`).
+* **Unique Value Proposition:** A vendor-neutral, upstream Kubernetes API for agent sandboxes. The isolation strength is whatever runtime you plug in, so the same manifests work with gVisor today and a microVM runtime tomorrow.
+
+### **4.22. Anthropic Sandbox Runtime (srt): OS-Native Sandboxing for Agents and MCP Servers**
+
+* **Overview:** srt is the sandbox Anthropic built for Claude Code, released as a standalone CLI and TypeScript library. It wraps any process, such as an agent, a local MCP server or a single shell command, in the host OS's own sandbox with no container or VM, and enforces filesystem and network restrictions on the whole process tree.
+* **GitHub:** [anthropics/sandbox-runtime](https://github.com/anthropics/sandbox-runtime)
+* **Website:** Documented in the repository; background in Anthropic's post [Beyond Permission Prompts](https://www.anthropic.com/engineering/claude-code-sandboxing).
+* **Launch Date:** October 2025, as a beta research preview; frequent releases since (v0.0.83 in November 2026).
+* **GitHub Stars:** Approximately 7,300.
+* **License:** **Apache-2.0**.
+* **Hosting:**
+  * **SaaS:** No.
+  * **Self-Hosted:** Yes, exclusively: `npm install -g @anthropic-ai/sandbox-runtime`. macOS uses `sandbox-exec` with generated [Seatbelt](#macos-seatbelt) profiles, Linux uses [bubblewrap](#bubblewrap) plus `socat`, and Windows support (a dedicated local account with a Windows Filtering Platform egress fence) is in alpha.
+* **Capabilities:**
+  * **Filesystem Access:** Writes are denied everywhere except allow-listed paths; reads are allowed by default with deny-listed regions (for example `~/.ssh`), and specific paths can be re-allowed inside a denied region.
+  * **Network Access:** Denied by default. On Linux the network namespace is removed entirely and all traffic goes through HTTP and SOCKS5 proxies on the host, reached over Unix sockets; on macOS the profile allows only the proxy's localhost port. The proxies enforce per-domain allow and deny lists, and an external decider process can approve requests at runtime.
+  * **Workload Suitability:** Local processes of any length; the policy can be updated while a command runs.
+* **Unique Value Proposition:** The same "both filesystem and network, or it is not a sandbox" model that Claude Code ships, available to any agent or tool as a few lines of configuration, with no VM image to maintain.
+
+### **4.23. Cloudflare Sandbox SDK: Per-User Linux VMs Driven from a Worker**
+
+* **Overview:** Where [Cloudflare Workers](#46-cloudflare-workers-edge-computing-with-v8-isolates) run JavaScript in V8 isolates, Sandboxes give each user, task or session a full Linux environment. A sandbox is a Durable Object plus the [Container](https://developers.cloudflare.com/containers/) it starts; Cloudflare describes them as Linux virtual machines. The Worker in front decides who gets which sandbox, which hosts it may reach and which credentials stay outside it.
+* **GitHub:** [cloudflare/sandbox-sdk](https://github.com/cloudflare/sandbox-sdk)
+* **Website:** [developers.cloudflare.com/sandbox](https://developers.cloudflare.com/sandbox/)
+* **Launch Date:** SDK first published June 2025 alongside the Containers beta; `@cloudflare/sandbox` 1.0 on 8 October 2026.
+* **GitHub Stars:** Approximately 1,170 for the SDK; the platform itself has no public star count.
+* **License:** **Apache-2.0** (SDK) / **Proprietary** (platform).
+* **Hosting:**
+  * **SaaS:** Yes, exclusively, on Cloudflare's network.
+  * **Self-Hosted:** No.
+* **Capabilities:**
+  * **Filesystem Access:** Persistent for the life of the sandbox. `Files` streams files in and out, `S3Mount` mounts an S3-compatible bucket with the Worker signing each request so the keys never enter the sandbox, and `DirectoryBackup` saves a directory to R2 and restores it into any container, including one on a newer image.
+  * **Network Access:** Internet access is switched on or off per container start; the Worker can broker everything else, the same credential-isolation idea as [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code).
+  * **Workload Suitability:** **Short and long-running**, addressed by name (`env.SANDBOX.getByName("user-123")`), so the same user lands in the same sandbox again.
+* **Unique Value Proposition:** Sandboxes as a primitive inside the Workers programming model: routing, auth, storage and per-user state stay in the Worker and Durable Object, and the untrusted code gets a Linux box that holds no secrets.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
@@ -678,6 +786,7 @@ When evaluating sandboxing solutions, one of the most fundamental architectural 
 - Shared kernel creates potential attack surface
 - Suitable for trusted, homogeneous workloads
 - Enhanced security available through technologies like gVisor (application kernels)
+- To see what a given setup actually isolates, Edera's [am-i-isolated](https://github.com/edera-dev/am-i-isolated) (Apache-2.0) runs inside the container and reports the security gaps it finds, with suggested fixes
 
 **Real-World Container Escape Statistics:**
 - **94% of organizations** reported serious container security incidents in the last 12 months
