@@ -42,6 +42,7 @@ This document provides a comprehensive, curated list and analysis of modern code
   - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
   - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
   - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
+  - [4.20. Brig: Open-Source MicroVMs for Coding Agents on macOS and Linux](#420-brig-open-source-microvms-for-coding-agents-on-macos-and-linux)
 - [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
   - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
   - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
@@ -275,6 +276,7 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | Docker / Seatbelt / Bubblewrap | Dec 2025 | 165 | MIT | Yes (Only) | No | Configurable | Configurable | Short-Running (CLI tool invocations) |
 | [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | OS-native (no container/VM) | 2026 | 3.6k+ | Apache-2.0 | Yes (Only) | No | Scoped per profile | Proxy-brokered, per-endpoint | Short-Running (per tool call) |
 | [**Deno Sandbox** ↓](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) | Firecracker (MicroVM) | Feb 2026 (beta) | 6 (SDK) | MIT (SDK) / Proprietary (platform) | No | Yes | Ephemeral | Configurable (allowlist + proxy) | Short-Running |
+| [**Brig** ↓](#420-brig-open-source-microvms-for-coding-agents-on-macos-and-linux) | MicroVMs (Hypervisor.framework or Virtualization.framework on macOS, urunc over KVM on Linux) | Aug 2026 (public), Sep 2026 (v0.2.0) | 107 | Apache-2.0 | Yes (Only) | No | Persistent guest home + one named project read-write | `shared` / `isolated` / `offline` | Short & Long-Running (agent sessions) |
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -594,6 +596,25 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Filesystem Access:** Ephemeral, scoped to the sandbox's own disk allocation.
   * **Network Access:** Configurable via an `allowNet` allowlist; all outbound traffic routes through a proxy that enforces the policy, and secrets are injected at the network layer only for approved destinations rather than being exposed to the running code, again the same credential-injection-proxy pattern covered in [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code), here built into the platform itself.
   * **Workload Suitability:** **Short-running**, billed per CPU-hour and memory-hour ($0.05/CPU-hour, $0.016/GiB-hour), which fits one-off agent tasks better than a persistent, always-on development environment.
+
+### **4.20. Brig: Open-Source MicroVMs for Coding Agents on macOS and Linux**
+
+* **Overview:** Coding agents install packages, run commands and use credentials. Under auto-approval they do all of that unattended, which is how a credential leaks or a command lands somewhere it should not. Brig runs the agent inside a microVM with its own Linux kernel, so a bad edit or a bad command reaches only what you handed it. Start with `brig run claude ~/code/project`.
+* **GitHub:** [brig-sh/brig](https://github.com/brig-sh/brig) (the `brig` CLI and the `brigd` session daemon), [brig-sh/hull](https://github.com/brig-sh/hull) (the microVM runtime on macOS), [brig-sh/hvi-vmm](https://github.com/brig-sh/hvi-vmm) (the microVMM hull drives on its `hvi` backend). On Linux, Brig drives `nerdctl` over containerd with the `urunc` shim, three projects it does not own.
+* **Website:** [brig.sh](https://brig.sh)
+* **Launch Date:** The repositories have been public since 12 August 2026. v0.2.0, the first stable release, shipped on 15 September 2026. hull and hvi-vmm version separately from the CLI.
+* **GitHub Stars:** 107 on brig-sh/brig as of 16 September 2026, and growing.
+* **License:** **Apache-2.0** across all three components, the VMM included.
+* **Hosting:**
+  * **SaaS:** No.
+  * **Self-Hosted:** Yes, exclusively, on the developer's own machine.
+* **Underlying Technology:** A microVM on both platforms, by a different route on each. On macOS, hull boots it through Hypervisor.framework (`hvi`, the default for six of the eight shipped profiles) or Virtualization.framework (`vz`). On Linux, the `urunc` containerd shim boots the same OCI image as a microVM over KVM instead of a process.
+* **Requirements:** Apple silicon Mac on macOS 15 or newer; macOS 14 works with `BRIG_HYPERVISOR=vz`, and Intel Macs are not supported. Linux on x86-64 or arm64, with `nerdctl`, containerd and the `urunc` shim installed first: Brig's installer does not bring them.
+* **Capabilities:**
+  * **Filesystem Access:** A persistent guest home, which is a host directory under `~/brig/<agent>`, plus the one project named on the run line, mounted read-write at `/work/<name>`. `--no-project` mounts none. The guest cannot reach any other host directory, your keychain, your SSH agent or your secret manager. Both mounts are the real files rather than a copy, so the agent can change them, and anything it can read there it can also send over the network.
+  * **Network Access:** Three modes. `shared` is the default and has full egress. `isolated` gives the sandbox a network of its own, and `offline` gives it none. Egress policies and `--network isolated` are enforced on hull's `hvi` backend only; Brig refuses a policy-bound run on any other backend rather than run it unenforced. Credentials are not inherited: the sandbox boots with none and the agent authenticates inside the guest, so a host token is never present unless it is delivered deliberately. Guest images are cosign-signed; Brig warns on an image it cannot verify and boots it anyway, until you set `BRIG_VERIFY=require`.
+  * **Workload Suitability:** Agent sessions, short or long. Sessions are named and resumable. `brig run claude` remounts the project the session used last, and `brig run claude@refactor` starts a second independent session of the same agent. Stopping or removing one is explicit rather than automatic, and neither touches the guest home or the project.
+  * **Agent Profiles:** Eight profiles ship built into the binary: Claude Code, Claude Desktop, Codex, Cursor, Gemini, Grok, opencode and a plain Ubuntu base. Claude Desktop is graphical, so it needs macOS and the `vz` backend and does not run on Linux. Anything else comes in as an OCI image, with or without a profile of your own.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
