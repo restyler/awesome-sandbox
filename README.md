@@ -7,54 +7,21 @@ This document provides a comprehensive, curated list and analysis of modern code
 ## Table of Contents
 
 - [1. Why Secure Code Execution Matters Now](#1-why-secure-code-execution-matters-now)
-- [2. Sandboxing Technologies](#2-sandboxing-technologies)
-  - [Sandboxing Technologies Feature Matrix](#sandboxing-technologies-feature-matrix)
-  - [2.1. Micro-Virtual Machines (MicroVMs): Hardware-Level Isolation](#21-micro-virtual-machines-microvms-hardware-level-isolation)
-    - [Firecracker](#firecracker)
-    - [libkrun](#libkrun)
-  - [2.2. Application Kernels: Intercepting the System Call](#22-application-kernels-intercepting-the-system-call)
-    - [gVisor](#gvisor)
-    - [nsjail](#nsjail)
-  - [2.3. Language Runtimes: Lightweight, High-Speed Isolation](#23-language-runtimes-lightweight-high-speed-isolation)
-    - [WebAssembly (WASM)](#webassembly-wasm)
-    - [V8 Isolates](#v8-isolates)
-  - [2.4. Containerization: Namespace-Based Isolation](#24-containerization-namespace-based-isolation)
-    - [Docker/OCI Containers](#dockeroci-containers)
-    - [Incus System Containers](#incus-system-containers)
-  - [2.5. OS-Native Process Sandboxing: No Container, No VM](#25-os-native-process-sandboxing-no-container-no-vm)
-    - [bubblewrap](#bubblewrap)
-    - [macOS Seatbelt](#macos-seatbelt)
-    - [Landlock](#landlock)
-- [3. Feature Matrix: At-a-Glance Comparison](#3-feature-matrix-at-a-glance-comparison)
-- [4. In-Depth Platform Profiles](#4-in-depth-platform-profiles)
-  - [4.1. e2b: The AI Agent Sandbox Runtime](#41-e2b-the-ai-agent-sandbox-runtime)
-  - [4.2. Daytona: Secure & Elastic Infrastructure for AI Code](#42-daytona-secure--elastic-infrastructure-for-ai-code)
-  - [4.3. microsandbox: Self-Hosted MicroVMs for Untrusted Code](#43-microsandbox-self-hosted-microvms-for-untrusted-code)
-  - [4.4. WebContainers: Browser-Native Development Runtime](#44-webcontainers-browser-native-development-runtime)
-  - [4.5. Replit: Collaborative Browser-Based Development](#45-replit-collaborative-browser-based-development)
-  - [4.6. Cloudflare Workers: Edge Computing with V8 Isolates](#46-cloudflare-workers-edge-computing-with-v8-isolates)
-  - [4.7. Fly.io: Modern Application Hosting with MicroVMs](#47-flyio-modern-application-hosting-with-microvms)
-  - [4.8. Kata Containers: Secure Container Runtime](#48-kata-containers-secure-container-runtime)
-  - [4.9. Other Notable Platforms & Cloud Development Environments (CDEs)](#49-other-notable-platforms--cloud-development-environments-cdes)
-  - [4.10. llm-sandbox: A Self-Hosted Library for LLM-Generated Code](#410-llm-sandbox-a-self-hosted-library-for-llm-generated-code)
-  - [4.11. Docker Sandboxes: Disposable MicroVMs for AI Coding Agents](#411-docker-sandboxes-disposable-microvms-for-ai-coding-agents)
-  - [4.12. Vercel Sandbox: Firecracker MicroVMs for Agent Workloads](#412-vercel-sandbox-firecracker-microvms-for-agent-workloads)
-  - [4.13. AWS Bedrock AgentCore: Managed Agent Runtime & Code Interpreter](#413-aws-bedrock-agentcore-managed-agent-runtime--code-interpreter)
-  - [4.14. Apple Containerization: VM-Backed Containers for macOS](#414-apple-containerization-vm-backed-containers-for-macos)
-  - [4.15. NVIDIA OpenShell: Policy-Governed Sandboxing for Autonomous Agents](#415-nvidia-openshell-policy-governed-sandboxing-for-autonomous-agents)
-  - [4.16. Koyeb Sandboxes: Bare-Metal MicroVMs for AI Agents](#416-koyeb-sandboxes-bare-metal-microvms-for-ai-agents)
-  - [4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing)
-  - [4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents](#418-nono-per-tool-call-brokered-sandboxing-for-agents)
-  - [4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy](#419-deno-sandbox-firecracker-microvms-on-deno-deploy)
-  - [4.20. Brig: Open-Source MicroVMs for Coding Agents on macOS and Linux](#420-brig-open-source-microvms-for-coding-agents-on-macos-and-linux)
-  - [4.21. Kubernetes Agent Sandbox: Declarative Sandboxes on Your Own Cluster](#421-kubernetes-agent-sandbox-declarative-sandboxes-on-your-own-cluster)
-  - [4.22. Anthropic Sandbox Runtime (srt): OS-Native Sandboxing for Agents and MCP Servers](#422-anthropic-sandbox-runtime-srt-os-native-sandboxing-for-agents-and-mcp-servers)
-  - [4.23. Cloudflare Sandbox SDK: Per-User Linux VMs Driven from a Worker](#423-cloudflare-sandbox-sdk-per-user-linux-vms-driven-from-a-worker)
-- [5. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code)
-  - [5.1. iron-proxy: An Egress Firewall for Untrusted Workloads](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads)
-  - [5.2. Infisical Agent Vault: A Local TLS-Terminating Credential Proxy](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
-- [6. Docker vs MicroVM for Sandboxing](#6-docker-vs-microvm-for-sandboxing)
-- [7. Choosing Your Sandbox: A Decision Framework](#7-choosing-your-sandbox-a-decision-framework)
+- [2. Sandboxing Technologies](#2-sandboxing-technologies) · [comparison table](#sandboxing-technologies-feature-matrix)
+  - [**MicroVMs:**](#21-micro-virtual-machines-microvms-hardware-level-isolation) [Firecracker](#firecracker) · [libkrun](#libkrun)
+  - [**Application kernels:**](#22-application-kernels-intercepting-the-system-call) [gVisor](#gvisor) · [nsjail](#nsjail)
+  - [**Language runtimes:**](#23-language-runtimes-lightweight-high-speed-isolation) [WebAssembly](#webassembly-wasm) · [V8 Isolates](#v8-isolates)
+  - [**Containers:**](#24-containerization-namespace-based-isolation) [Docker/OCI](#dockeroci-containers) · [Incus](#incus-system-containers)
+  - [**OS-native process sandboxing:**](#25-os-native-process-sandboxing-no-container-no-vm) [bubblewrap](#bubblewrap) · [Seatbelt](#macos-seatbelt) · [Landlock](#landlock)
+- [3. Feature Matrix](#3-feature-matrix-at-a-glance-comparison) · [**By host OS: macOS, Linux, Windows**](#31-by-host-os-macos-linux-windows)
+- [4. Platform Profiles](#4-in-depth-platform-profiles)
+  - **Cloud / SaaS:** [e2b](#41-e2b-the-ai-agent-sandbox-runtime) · [Daytona](#42-daytona-secure--elastic-infrastructure-for-ai-code) · [Replit](#45-replit-collaborative-browser-based-development) · [Cloudflare Workers](#46-cloudflare-workers-edge-computing-with-v8-isolates) · [Fly.io](#47-flyio-modern-application-hosting-with-microvms) · [Vercel Sandbox](#412-vercel-sandbox-firecracker-microvms-for-agent-workloads) · [AWS AgentCore](#413-aws-bedrock-agentcore-managed-agent-runtime--code-interpreter) · [Koyeb](#416-koyeb-sandboxes-bare-metal-microvms-for-ai-agents) · [Deno Sandbox](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) · [Cloudflare Sandbox](#423-cloudflare-sandbox-sdk-per-user-linux-vms-driven-from-a-worker)
+  - **Self-hosted on servers:** [microsandbox](#43-microsandbox-self-hosted-microvms-for-untrusted-code) · [Kata Containers](#48-kata-containers-secure-container-runtime) · [llm-sandbox](#410-llm-sandbox-a-self-hosted-library-for-llm-generated-code) · [Kubernetes Agent Sandbox](#421-kubernetes-agent-sandbox-declarative-sandboxes-on-your-own-cluster)
+  - **On your own machine:** [Docker Sandboxes](#411-docker-sandboxes-disposable-microvms-for-ai-coding-agents) · [Apple Containerization](#414-apple-containerization-vm-backed-containers-for-macos) · [NVIDIA OpenShell](#415-nvidia-openshell-policy-governed-sandboxing-for-autonomous-agents) · [Amazing Sandbox](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) · [nono](#418-nono-per-tool-call-brokered-sandboxing-for-agents) · [Brig](#420-brig-open-source-microvms-for-coding-agents-on-macos-and-linux) · [srt](#422-anthropic-sandbox-runtime-srt-os-native-sandboxing-for-agents-and-mcp-servers) · [Microsoft MXC](#424-microsoft-execution-containers-mxc-native-agent-containment-on-windows)
+  - **Other:** [WebContainers](#44-webcontainers-browser-native-development-runtime) · [Other platforms & CDEs](#49-other-notable-platforms--cloud-development-environments-cdes)
+- [5. Credential Injection Proxies](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code): [iron-proxy](#51-iron-proxy-an-egress-firewall-for-untrusted-workloads) · [Agent Vault](#52-infisical-agent-vault-a-local-tls-terminating-credential-proxy)
+- [6. Docker vs MicroVM](#6-docker-vs-microvm-for-sandboxing)
+- [7. Choosing Your Sandbox](#7-choosing-your-sandbox-a-decision-framework)
   - [Axis 1: Security vs. Performance vs. Compatibility](#axis-1-security-vs-performance-vs-compatibility)
   - [Axis 2: Stateless Functions vs. Stateful Workloads](#axis-2-stateless-functions-vs-stateful-workloads)
   - [Axis 3: SaaS Convenience vs. Self-Hosted Control](#axis-3-saas-convenience-vs-self-hosted-control)
@@ -333,6 +300,36 @@ The following table provides a high-level, comparative overview of the leading c
 | [**Kubernetes Agent Sandbox** ↓](#421-kubernetes-agent-sandbox-declarative-sandboxes-on-your-own-cluster) | Orchestrator for gVisor / Kata Containers (via `RuntimeClass`) | Nov 2025 (v0.1.0), Aug 2026 (v1.0) | 4.7k+ | Apache-2.0 | Yes (Only) | No (runs on any cluster, including managed Kubernetes) | Persistent (per-sandbox volumes) | Full (Kubernetes networking, optional Sandbox Router) | Long-Running & Stateful |
 | [**srt** ↓](#422-anthropic-sandbox-runtime-srt-os-native-sandboxing-for-agents-and-mcp-servers) | OS-native (Seatbelt on macOS, bubblewrap on Linux) | Oct 2025 | 7.3k+ | Apache-2.0 | Yes (Only) | No | Writes allow-listed, reads deny-listed | Denied by default, per-domain allowlist via host proxies | Short & Long-Running (local processes) |
 | [**Cloudflare Sandbox SDK** ↓](#423-cloudflare-sandbox-sdk-per-user-linux-vms-driven-from-a-worker) | Linux VMs (Cloudflare Containers) owned by Durable Objects | Jun 2025 (beta), Oct 2026 (SDK v1.0) | 1.1k+ (SDK) | Apache-2.0 (SDK) / Proprietary (platform) | No | Yes | Persistent per sandbox; R2 backups, S3 mounts | On or off per sandbox, egress decided by the Worker | Short & Long-Running |
+| [**Microsoft MXC** ↓](#424-microsoft-execution-containers-mxc-native-agent-containment-on-windows) | OS-native backends (ProcessContainer, Windows Sandbox, WSLC, bubblewrap, Seatbelt) | Feb 2026 (repo), Jun 2026 (preview at Build) | 3.2k+ | MIT | Yes (Only) | No | Read-only / read-write / denied path lists | Outbound controls via proxy; host filtering depends on backend | Short & Long-Running |
+
+### **3.1. By Host OS: macOS, Linux, Windows**
+
+Cloud services ([e2b](#41-e2b-the-ai-agent-sandbox-runtime) · [Vercel Sandbox](#412-vercel-sandbox-firecracker-microvms-for-agent-workloads) · [AWS AgentCore](#413-aws-bedrock-agentcore-managed-agent-runtime--code-interpreter) · [Cloudflare Sandbox](#423-cloudflare-sandbox-sdk-per-user-linux-vms-driven-from-a-worker) and the rest) work the same from any OS: the sandbox runs on the provider's Linux hosts and you only need their SDK. The table below is about what runs **locally, on your own machine**, which is where the host OS decides your options.
+
+✅ native · ⚠️ experimental, or only through WSL2 · — not available
+
+| Solution | macOS | Linux | Windows | How it isolates |
+| :---- | :---- | :---- | :---- | :---- |
+| [**Docker Sandboxes** ↓](#411-docker-sandboxes-disposable-microvms-for-ai-coding-agents) | ✅ | ✅ | ✅ | MicroVM per sandbox (Hypervisor.framework / KVM / Windows Hypervisor Platform) |
+| [**microsandbox** ↓](#43-microsandbox-self-hosted-microvms-for-untrusted-code) | ✅ Apple silicon | ✅ KVM | ✅ WHP | libkrun microVMs |
+| [**Microsoft MXC** ↓](#424-microsoft-execution-containers-mxc-native-agent-containment-on-windows) | ✅ Seatbelt | ✅ bubblewrap, LXC | ✅ ProcessContainer; Windows Sandbox, MicroVM ⚠️ | One policy SDK over each OS's native backends |
+| [**NVIDIA OpenShell** ↓](#415-nvidia-openshell-policy-governed-sandboxing-for-autonomous-agents) | ✅ Apple silicon | ✅ | ⚠️ WSL2; native through MXC | Policy layer over containers or microVMs |
+| [**srt** ↓](#422-anthropic-sandbox-runtime-srt-os-native-sandboxing-for-agents-and-mcp-servers) | ✅ Seatbelt | ✅ bubblewrap | ⚠️ alpha | OS-native process sandbox + network proxy |
+| [**nono** ↓](#418-nono-per-tool-call-brokered-sandboxing-for-agents) | ✅ | ✅ | ⚠️ WSL2 | OS-native, per tool call |
+| [**Brig** ↓](#420-brig-open-source-microvms-for-coding-agents-on-macos-and-linux) | ✅ Apple silicon | ✅ | — | MicroVM per agent session |
+| [**Apple Containerization** ↓](#414-apple-containerization-vm-backed-containers-for-macos) | ✅ macOS 26, Apple silicon | — | — | Lightweight VM per container |
+| [**Amazing Sandbox** ↓](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) | ✅ Docker or Seatbelt | ✅ Docker or bubblewrap | ✅ Docker | Wrapper over whatever the OS has |
+| [**llm-sandbox** ↓](#410-llm-sandbox-a-self-hosted-library-for-llm-generated-code) | ✅ Docker / Podman | ✅ + bubblewrap, nsjail | ✅ Docker; ⚠️ MXC, WSL2 | Library with pluggable backends |
+| [**Docker/OCI containers** ↓](#dockeroci-containers) | ✅ inside Docker Desktop's Linux VM | ✅ | ✅ inside Docker Desktop / WSL2 | Namespaces (plus the VM on Mac and Windows) |
+| [**libkrun** ↓](#libkrun) | ✅ ARM64 | ✅ | — (WHP support announced) | MicroVM library |
+| [**Seatbelt** ↓](#macos-seatbelt) | ✅ | — | — | Kernel policy per process |
+| [**Windows Sandbox**](https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/) | — | — | ✅ Pro / Enterprise / Education | Disposable desktop VM, reset on close |
+| Linux-only building blocks: [Firecracker](#firecracker), [gVisor](#gvisor), [nsjail](#nsjail), [Kata](#48-kata-containers-secure-container-runtime), [Incus](#incus-system-containers), [bubblewrap](#bubblewrap), [Landlock](#landlock), [Kubernetes Agent Sandbox](#421-kubernetes-agent-sandbox-declarative-sandboxes-on-your-own-cluster) | — | ✅ | ⚠️ WSL2 | — |
+
+**Quick picks:**
+- **macOS:** [Docker Sandboxes](#411-docker-sandboxes-disposable-microvms-for-ai-coding-agents) or [Brig](#420-brig-open-source-microvms-for-coding-agents-on-macos-and-linux) to put a whole coding agent in a microVM; [srt](#422-anthropic-sandbox-runtime-srt-os-native-sandboxing-for-agents-and-mcp-servers) or [nono](#418-nono-per-tool-call-brokered-sandboxing-for-agents) for lightweight per-command sandboxing with no VM; [Apple Containerization](#414-apple-containerization-vm-backed-containers-for-macos) for a VM per container in day-to-day development.
+- **Windows:** [Docker Sandboxes](#411-docker-sandboxes-disposable-microvms-for-ai-coding-agents) or [microsandbox](#43-microsandbox-self-hosted-microvms-for-untrusted-code) for microVMs; [Microsoft MXC](#424-microsoft-execution-containers-mxc-native-agent-containment-on-windows) for native process containment (the route GitHub Copilot CLI and OpenShell on Windows take); Windows Sandbox for a throwaway desktop. Anything Linux-only runs inside WSL2, which is itself a VM.
+- **Linux:** everything in this guide; for local agents, [srt](#422-anthropic-sandbox-runtime-srt-os-native-sandboxing-for-agents-and-mcp-servers) or bubblewrap for speed, [Docker Sandboxes](#411-docker-sandboxes-disposable-microvms-for-ai-coding-agents), [Brig](#420-brig-open-source-microvms-for-coding-agents-on-macos-and-linux) or [microsandbox](#43-microsandbox-self-hosted-microvms-for-untrusted-code) when you want a separate kernel.
 
 ## **4\. In-Depth Platform Profiles**
 
@@ -723,6 +720,26 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
   * **Network Access:** Internet access is switched on or off per container start; the Worker can broker everything else, the same credential-isolation idea as [Section 5](#5-credential-injection-proxies-keeping-secrets-out-of-sandboxed-code).
   * **Workload Suitability:** **Short and long-running**, addressed by name (`env.SANDBOX.getByName("user-123")`), so the same user lands in the same sandbox again.
 * **Unique Value Proposition:** Sandboxes as a primitive inside the Workers programming model: routing, auth, storage and per-user state stay in the Worker and Durable Object, and the untrusted code gets a Linux box that holds no secrets.
+
+### **4.24. Microsoft Execution Containers (MXC): Native Agent Containment on Windows**
+
+* **Overview:** MXC is Microsoft's SDK for running untrusted code, such as model output, plugins and agent tool calls, under a declared policy. It builds into the calling application and launches the workload in whichever containment backend the host OS offers, so one policy format covers Windows, Linux and macOS. On Windows it is the first native answer to the per-command sandboxing that macOS (Seatbelt) and Linux (bubblewrap, Landlock) already had.
+* **GitHub:** [microsoft/mxc](https://github.com/microsoft/mxc)
+* **Website:** Announced in [Windows platform security for AI agents](https://blogs.windows.com/windowsdeveloper/2026/06/02/windows-platform-security-for-ai-agents/) (Build 2026); enterprise rollout in [Enterprise deployment of governed agents on Windows](https://blogs.windows.com/windowsdeveloper/2026/11/17/enterprise-deployment-of-governed-agents-on-windows/).
+* **Launch Date:** Repository public February 2026; early preview of the SDK announced at Build in June 2026. As of November 2026 process containment is the part available on Windows; Intune policy management is in private preview.
+* **GitHub Stars:** Approximately 3,200.
+* **License:** **MIT**.
+* **Hosting:**
+  * **SaaS:** No.
+  * **Self-Hosted:** Yes, exclusively, as a library: Rust (`mxc-sdk`), .NET (`Microsoft.Mxc.Sdk`) and Node (`@microsoft/mxc-sdk`), plus standalone executors that take a JSON request.
+* **Underlying Technology:** On Windows 11 (x64 and ARM64) the default backend is ProcessContainer, with WSLC and IsolationSession as alternatives and Windows Sandbox, MicroVM (x64 only) and Hyperlight as experimental ones. Linux defaults to bubblewrap (LXC and Hyperlight optional); macOS uses Seatbelt.
+* **Capabilities:**
+  * **Filesystem Access:** Read-only, read-write and denied path lists.
+  * **Network Access:** Proxy support and outbound controls; host-level filtering depends on the backend.
+  * **UI Access:** Clipboard, display and GUI access controls, which matter on a desktop OS where an agent could otherwise read the screen or inject input.
+  * **Workload Suitability:** One-shot create-and-run calls or persistent containers with a full lifecycle (provision, start, execute, stop, deprovision).
+* **Adoption:** GitHub Copilot CLI uses MXC process isolation; NVIDIA brought [OpenShell](#415-nvidia-openshell-policy-governed-sandboxing-for-autonomous-agents) to Windows on top of it, and OpenClaw runs on Windows through it.
+* **Unique Value Proposition:** An OS vendor's own containment API for agents, with a learning mode that records what a trusted tool actually touches and turns it into a policy. Note that eligible Windows builds send required diagnostic data to Microsoft.
 
 ## **5\. Credential Injection Proxies: Keeping Secrets Out of Sandboxed Code**
 
