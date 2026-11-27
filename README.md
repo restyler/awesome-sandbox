@@ -46,19 +46,20 @@ Different sandboxing technologies make different trade-offs between three key fa
 
 The following table provides a comparative overview of the core sandboxing technologies, highlighting their key characteristics and trade-offs:
 
-| Technology | Isolation Level | Startup Time | Resource Overhead | Hardware Requirements | Compatibility | Primary Use Cases |
-| :---- | :---- | :---- | :---- | :---- | :---- | :---- |
-| [**Firecracker** ↓](#firecracker) | Hardware-Level | ~125ms | Low (5MB per VM) | KVM/Hardware Virtualization | Full Linux | Serverless, AI agents, ephemeral workloads |
-| [**libkrun** ↓](#libkrun) | Hardware-Level | ~Container-speed | Low | KVM/Hardware Virtualization | Full Linux | Embedded sandboxing, self-hosted platforms |
-| [**gVisor** ↓](#gvisor) | Application Kernel | ~100ms | Medium | Any Linux host | High (Linux API subset) | Multi-tenant containers, cloud services |
-| [**nsjail** ↓](#nsjail) | Process-Level | ~50ms | Very Low | Any Linux host | High (filtered syscalls) | Code execution, long-running processes |
-| [**Docker/OCI** ↓](#dockeroci-containers) | Namespace-Level | ~10-50ms | Very Low | Any Linux host | Full Linux | Development, CI/CD, application deployment |
-| [**Incus** ↓](#incus-system-containers) | System Container / QEMU VM | ~1-3s (containers), ~3-10s (VMs) | Low (containers), Medium (VMs) | Any Linux host (containers) or KVM/QEMU (VMs) | Full Linux (full init system, dedicated kernel in VM mode) | AI agent sandboxing, development environments, multi-tenant isolation |
-| [**bubblewrap** ↓](#bubblewrap) | Process-Level (namespaces) | ~Process spawn | Very Low | Linux with unprivileged user namespaces | High (host kernel, any Linux binary) | Local agent and tool sandboxing, Flatpak apps |
-| [**Seatbelt** ↓](#macos-seatbelt) | Process-Level (kernel policy) | ~Process spawn | Very Low | macOS | Full (native macOS processes) | Local agent sandboxing on Macs, browser renderers |
-| [**Landlock** ↓](#landlock) | Process-Level (LSM) | ~Instant (process restricts itself) | Very Low | Linux 5.13+ | Full (native processes) | Tools and agents that restrict their own access |
-| [**WebAssembly** ↓](#webassembly-wasm) | Runtime-Level | ~10ms | Very Low | Any platform | Limited (WASM modules) | Edge computing, plugin systems |
-| [**V8 Isolates** ↓](#v8-isolates) | Runtime-Level | ~1ms | Very Low | Any platform | JavaScript only | Edge functions, serverless JavaScript |
+| Technology | Isolation Level | Startup Time | Resource Overhead | Hardware Requirements | Compatibility | Primary Use Cases | Used by (in this guide) |
+| :---- | :---- | :---- | :---- | :---- | :---- | :---- | :---- |
+| [**Firecracker** ↓](#firecracker) | Hardware-Level | ~125ms | Low (5MB per VM) | KVM/Hardware Virtualization | Full Linux | Serverless, AI agents, ephemeral workloads | [e2b](#41-e2b-the-ai-agent-sandbox-runtime) · [Fly.io](#47-flyio-modern-application-hosting-with-microvms) · [Vercel Sandbox](#412-vercel-sandbox-firecracker-microvms-for-agent-workloads) · [AWS AgentCore](#413-aws-bedrock-agentcore-managed-agent-runtime--code-interpreter) · [Deno Sandbox](#419-deno-sandbox-firecracker-microvms-on-deno-deploy) · [Kata Containers](#48-kata-containers-secure-container-runtime) (optional VMM) |
+| [**libkrun** ↓](#libkrun) | Hardware-Level | ~Container-speed | Low | KVM/Hardware Virtualization | Full Linux | Embedded sandboxing, self-hosted platforms | [microsandbox](#43-microsandbox-self-hosted-microvms-for-untrusted-code) |
+| [**gVisor** ↓](#gvisor) | Application Kernel | ~100ms | Medium | Any Linux host | High (Linux API subset) | Multi-tenant containers, cloud services | [Kubernetes Agent Sandbox](#421-kubernetes-agent-sandbox-declarative-sandboxes-on-your-own-cluster) (as a runtime); outside this guide: Google Cloud Run |
+| [**nsjail** ↓](#nsjail) | Process-Level | ~50ms | Very Low | Any Linux host | High (filtered syscalls) | Code execution, long-running processes | [llm-sandbox](#410-llm-sandbox-a-self-hosted-library-for-llm-generated-code); outside this guide: Windmill |
+| [**Docker/OCI** ↓](#dockeroci-containers) | Namespace-Level | ~10-50ms | Very Low | Any Linux host | Full Linux | Development, CI/CD, application deployment | [Daytona](#42-daytona-secure--elastic-infrastructure-for-ai-code) · [llm-sandbox](#410-llm-sandbox-a-self-hosted-library-for-llm-generated-code) · [Amazing Sandbox](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) · [NVIDIA OpenShell](#415-nvidia-openshell-policy-governed-sandboxing-for-autonomous-agents) |
+| [**Incus** ↓](#incus-system-containers) | System Container / QEMU VM | ~1-3s (containers), ~3-10s (VMs) | Low (containers), Medium (VMs) | Any Linux host (containers) or KVM/QEMU (VMs) | Full Linux (full init system, dedicated kernel in VM mode) | AI agent sandboxing, development environments, multi-tenant isolation | — |
+| [**bubblewrap** ↓](#bubblewrap) | Process-Level (namespaces) | ~Process spawn | Very Low | Linux with unprivileged user namespaces | High (host kernel, any Linux binary) | Local agent and tool sandboxing, Flatpak apps | [srt](#422-anthropic-sandbox-runtime-srt-os-native-sandboxing-for-agents-and-mcp-servers) · [Amazing Sandbox](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) · [Microsoft MXC](#424-microsoft-execution-containers-mxc-native-agent-containment-on-windows) · [llm-sandbox](#410-llm-sandbox-a-self-hosted-library-for-llm-generated-code); outside this guide: Flatpak |
+| [**Seatbelt** ↓](#macos-seatbelt) | Process-Level (kernel policy) | ~Process spawn | Very Low | macOS | Full (native macOS processes) | Local agent sandboxing on Macs, browser renderers | [srt](#422-anthropic-sandbox-runtime-srt-os-native-sandboxing-for-agents-and-mcp-servers) · [nono](#418-nono-per-tool-call-brokered-sandboxing-for-agents) · [Amazing Sandbox](#417-amazing-sandbox-a-local-cli-wrapper-over-os-native-sandboxing) · [Microsoft MXC](#424-microsoft-execution-containers-mxc-native-agent-containment-on-windows); outside this guide: Chrome, Codex CLI |
+| [**Landlock** ↓](#landlock) | Process-Level (LSM) | ~Instant (process restricts itself) | Very Low | Linux 5.13+ | Full (native processes) | Tools and agents that restrict their own access | [nono](#418-nono-per-tool-call-brokered-sandboxing-for-agents) |
+| [**WebAssembly** ↓](#webassembly-wasm) | Runtime-Level | ~10ms | Very Low | Any platform | Limited (WASM modules) | Edge computing, plugin systems | [WebContainers](#44-webcontainers-browser-native-development-runtime) |
+| [**V8 Isolates** ↓](#v8-isolates) | Runtime-Level | ~1ms | Very Low | Any platform | JavaScript only | Edge functions, serverless JavaScript | [Cloudflare Workers](#46-cloudflare-workers-edge-computing-with-v8-isolates) |
+
 
 ### **Key Characteristics:**
 
@@ -68,6 +69,7 @@ The following table provides a comparative overview of the core sandboxing techn
 - **Hardware Requirements**: Dependencies on specific hardware or virtualization features
 - **Compatibility**: How closely the sandbox environment matches a full operating system
 - **Primary Use Cases**: Most common scenarios where each technology excels
+- **Used by**: Platforms profiled in [Section 4](#4-in-depth-platform-profiles) that are built on this technology
 
 ### **2.1. Micro-Virtual Machines (MicroVMs): Hardware-Level Isolation**
 
@@ -338,6 +340,7 @@ This section provides a detailed, structured analysis of each major platform, ex
 ### **4.1. e2b: The AI Agent Sandbox Runtime**
 
 * **Overview:** e2b is an open-source, secure cloud runtime explicitly engineered for the needs of AI applications and autonomous agents. It provides developers with sandboxed cloud environments powered by Firecracker microVMs, enabling the safe execution of AI-generated code. The platform is heavily focused on providing a seamless developer experience through its SDKs and is designed to be the backend infrastructure for agentic workflows.  
+* **Built on:** [Firecracker](#firecracker) microVMs
 * **GitHub:** [e2b-dev/E2B](https://github.com/e2b-dev/E2B)
 * **Website:** [e2b.dev](https://e2b.dev)  
 * **Launch Date:** The "Custom Sandboxes" feature, a core part of its offering, was launched on November 7, 2023. The project has been active for longer, with notable partnerships like the one with Groq announced in April 2025, indicating its adoption in production systems.  
@@ -354,6 +357,7 @@ This section provides a detailed, structured analysis of each major platform, ex
 ### **4.2. Daytona: Secure & Elastic Infrastructure for AI Code**
 
 * **Overview:** Daytona positions itself as a comprehensive platform for both secure AI code execution and enterprise development environment management. It emphasizes lightning-fast sandbox startup times (under 200ms), stateful persistence, and a robust SDK for programmatic control. It aims to provide a secure, elastic runtime for AI agents while also serving as a full-featured Cloud Development Environment (CDE). **As of June 2026, Daytona is no longer self-hostable:** the company moved its production codebase to a closed-source repository, citing the risk of AI-assisted attackers using a public isolation/kernel-boundary implementation as a blueprint for exploits. See their own announcement, [Daytona is going closed source. Here's why.](https://www.daytona.io/dotfiles/updates/daytona-is-going-closed-source), for the full rationale. The public `daytonaio/daytona` repository still exists and remains AGPL-3.0-licensed, but it is frozen at the last open release (v0.190.0) and receives no further updates, fixes, or security patches. For a detailed comparison with other AI sandboxing solutions, see this [analysis of Daytona vs microsandbox](https://pixeljets.com/blog/ai-sandboxes-daytona-vs-microsandbox/).  
+* **Built on:** [Docker/OCI containers](#dockeroci-containers)
 * **GitHub:** [daytonaio/daytona](https://github.com/daytonaio/daytona) (archived at v0.190.0; no longer maintained)
 * **Website:** [daytona.io](https://daytona.io)  
 * **Launch Date:** The company was founded in 2023, and its open-source version gained significant community traction and funding in mid-2024. It went closed-source in June 2026.  
@@ -373,6 +377,7 @@ Daytona's core product was already AGPL-3.0, a copyleft license that requires mo
 ### **4.3. microsandbox: Self-Hosted MicroVMs for Untrusted Code**
 
 * **Overview:** microsandbox is a self-hosted platform singularly focused on providing maximum security for untrusted code execution. Its core value proposition is combining the hardware-level isolation of microVMs (powered by libkrun) with the sub-200ms startup speed of containers and the complete control afforded by a self-hosted model. It is designed to solve the security-speed-control trade-off without compromise.  
+* **Built on:** [libkrun](#libkrun) microVMs
 * **GitHub:** [microsandbox/microsandbox](https://github.com/microsandbox/microsandbox)
 * **Website:** [docs.microsandbox.dev](https://docs.microsandbox.dev)  
 * **Launch Date:** The initial public release (v0.1.0) was on May 20, 2025.  
@@ -389,6 +394,7 @@ Daytona's core product was already AGPL-3.0, a copyleft license that requires mo
 ### **4.4. WebContainers: Browser-Native Development Runtime**
 
 * **Overview:** [WebContainers](https://webcontainers.io) represents a fundamentally different approach to code sandboxing by bringing server-side development entirely into the browser. Developed by StackBlitz, this technology creates a browser-based Node.js runtime using WebAssembly that can run package managers, development servers, and full-stack frameworks without any remote infrastructure.
+* **Built on:** [WebAssembly](#webassembly-wasm) and the browser's own sandbox
 * **GitHub:** N/A (proprietary)
 * **Website:** [webcontainers.io](https://webcontainers.io), [stackblitz.com](https://stackblitz.com)  
 * **Technology:** The platform leverages **Browser-based Node.js/WebAssembly** to create isolated execution environments that run entirely within the browser's security sandbox. This approach eliminates the need for remote servers while providing genuine Node.js compatibility.  
@@ -406,6 +412,7 @@ Daytona's core product was already AGPL-3.0, a copyleft license that requires mo
 ### **4.5. Replit: Collaborative Browser-Based Development**
 
 * **Overview:** [Replit](https://replit.com) is a browser-based development platform that emphasizes collaboration, education, and rapid prototyping. Founded in 2016, it has become one of the most popular platforms for learning to code and building quick prototypes. The platform provides instant development environments without any local setup, supporting dozens of programming languages and frameworks.
+* **Built on:** Containers and VMs (proprietary stack)
 * **GitHub:** [replit](https://github.com/replit)
 * **Website:** [replit.com](https://replit.com)  
 * **Technology:** Replit uses **container and VM-based isolation** to provide secure, isolated development environments. Each "Repl" (development environment) runs in its own sandboxed container with full filesystem access and network capabilities.  
@@ -423,6 +430,7 @@ Daytona's core product was already AGPL-3.0, a copyleft license that requires mo
 ### **4.6. Cloudflare Workers: Edge Computing with V8 Isolates**
 
 * **Overview:** [Cloudflare Workers](https://workers.cloudflare.com) represents the edge computing paradigm, running code across Cloudflare's global network of 275+ data centers. Launched in 2017, it uses V8 Isolates to provide extremely fast cold starts and global distribution, making it ideal for serverless functions that need to run close to users worldwide.
+* **Built on:** [V8 Isolates](#v8-isolates)
 * **GitHub:** N/A (proprietary)
 * **Website:** [workers.cloudflare.com](https://workers.cloudflare.com), [developers.cloudflare.com/workers](https://developers.cloudflare.com/workers)  
 * **Technology:** **V8 Isolates** - Uses the same isolation technology as web browsers to provide lightweight, secure execution environments with near-zero cold start times.  
@@ -440,6 +448,7 @@ Daytona's core product was already AGPL-3.0, a copyleft license that requires mo
 ### **4.7. Fly.io: Modern Application Hosting with MicroVMs**
 
 * **Overview:** [Fly.io](https://fly.io) is a developer-focused cloud platform that runs applications using hardware-virtualized containers (microVMs) across 35 global regions. Founded in 2017, it bridges the gap between traditional VPS hosting and modern serverless platforms, offering the flexibility of VMs with the convenience of containerized deployment.
+* **Built on:** [Firecracker](#firecracker) microVMs
 * **GitHub:** N/A (proprietary)
 * **Website:** [fly.io](https://fly.io), [fly.io/docs](https://fly.io/docs)  
 * **Technology:** **MicroVMs (Firecracker)** - Uses Firecracker microVMs to provide hardware-level isolation while maintaining fast boot times (250ms or less).  
@@ -457,6 +466,7 @@ Daytona's core product was already AGPL-3.0, a copyleft license that requires mo
 ### **4.8. Kata Containers: Secure Container Runtime**
 
 * **Overview:** [Kata Containers](https://katacontainers.io) is an open-source container runtime that delivers the speed of containers with the security of virtual machines. Launched in 2017 by the Open Infrastructure Foundation, it represents a unique approach to container security by running each container in its own lightweight virtual machine. This hybrid approach addresses the fundamental security concerns of traditional container runtimes while maintaining container ecosystem compatibility.
+* **Built on:** A lightweight VM per pod, on QEMU, Cloud Hypervisor, [Firecracker](#firecracker) or its built-in Dragonball VMM; used as a runtime by [Kubernetes Agent Sandbox](#421-kubernetes-agent-sandbox-declarative-sandboxes-on-your-own-cluster)
 * **GitHub:** [kata-containers/kata-containers](https://github.com/kata-containers/kata-containers)
 * **Website:** [katacontainers.io](https://katacontainers.io)  
 * **Technology:** **MicroVM Containers** - Kata Containers creates lightweight virtual machines for each container, providing hardware-enforced isolation while maintaining compatibility with the container ecosystem. It supports multiple hypervisors including QEMU, Cloud-Hypervisor, and Firecracker.  
@@ -485,6 +495,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 ### **4.10. llm-sandbox: A Self-Hosted Library for LLM-Generated Code**
 
 * **Overview:** llm-sandbox differs from most entries here in that it is a *library* rather than a platform. There is no control plane and no daemon of its own: it is a `pip install` that turns container runtimes you already operate into a sandbox for LLM-generated code. A single context-managed session takes a code string and returns stdout, stderr, exit code and any generated artifacts. The same API runs over Docker, Podman or Kubernetes, so a workflow prototyped on a laptop runs unchanged on a cluster.
+* **Built on:** [Docker/OCI containers](#dockeroci-containers) (also Podman, Kubernetes); local [bubblewrap](#bubblewrap) and [nsjail](#nsjail) backends; experimental [Microsoft MXC](#424-microsoft-execution-containers-mxc-native-agent-containment-on-windows) backend on Windows
 * **GitHub:** [vndee/llm-sandbox](https://github.com/vndee/llm-sandbox)
 * **Website:** [vndee.github.io/llm-sandbox](https://vndee.github.io/llm-sandbox/)
 * **Launch Date:** First public release (0.1.0) in July 2024.
@@ -503,6 +514,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 ### **4.11. Docker Sandboxes: Disposable MicroVMs for AI Coding Agents**
 
 * **Overview:** Docker Sandboxes (CLI: `sbx`) runs AI coding agents, such as Claude Code, Gemini CLI, GitHub Copilot CLI, Codex, OpenCode, and Kiro, inside disposable microVMs on the developer's own machine, so an agent can install packages, edit configs, and spin up its own nested Docker containers without ever touching the host.
+* **Built on:** Docker's own VMM on each OS's hypervisor: Hypervisor.framework (macOS), KVM (Linux), Windows Hypervisor Platform
 * **Website:** [docker.com/products/docker-sandboxes](https://www.docker.com/products/docker-sandboxes/)
 * **GitHub:** [docker/sbx-releases](https://github.com/docker/sbx-releases) (binary releases only; the CLI itself is closed-source)
 * **Launch Date:** In development through 2025 with regular updates; reached general availability in early 2026.
@@ -521,6 +533,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 ### **4.12. Vercel Sandbox: Firecracker MicroVMs for Agent Workloads**
 
 * **Overview:** Vercel Sandbox is a managed, ephemeral compute primitive for running untrusted or AI-generated code, built on "Hive," Vercel's internal platform for orchestrating Firecracker microVM clusters across regions. It's pitched as the execution layer for agents that clone repos, install dependencies, and run tests, mainly for teams already building on Vercel.
+* **Built on:** [Firecracker](#firecracker) microVMs
 * **GitHub:** [vercel/sandbox](https://github.com/vercel/sandbox) (open-source CLI/SDK; the hosted execution platform itself is proprietary)
 * **Website:** [vercel.com/sandbox](https://vercel.com/sandbox)
 * **Launch Date:** Announced mid-2025; reached general availability on **January 30, 2026**.
@@ -537,6 +550,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 ### **4.13. AWS Bedrock AgentCore: Managed Agent Runtime & Code Interpreter**
 
 * **Overview:** Amazon Bedrock AgentCore is AWS's managed platform for building, deploying, and operating AI agents "at scale," largely framework- and model-agnostic. Two of its built-in tools are directly relevant here: **Code Interpreter**, which gives an agent a secure sandbox to execute code across multiple languages, and **Runtime**, which now supports interactive shell sessions with state (environment variables, working directory, running processes) that persists for the life of the session.
+* **Built on:** [Firecracker](#firecracker) microVMs
 * **Website:** [aws.amazon.com/bedrock/agentcore](https://aws.amazon.com/bedrock/agentcore/)
 * **GitHub:** [aws/bedrock-agentcore-sdk-python](https://github.com/aws/bedrock-agentcore-sdk-python) (open-source SDK; the managed service itself is proprietary)
 * **Launch Date:** Preview on **July 16, 2025**; general availability on **October 13, 2025**.
@@ -554,6 +568,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 ### **4.14. Apple Containerization: VM-Backed Containers for macOS**
 
 * **Overview:** Unveiled at WWDC 2025, Apple's Containerization framework (and its `container` CLI) runs OCI-compliant Linux container images natively on Apple Silicon Macs, but instead of one shared Linux VM hosting all containers (the model most Docker Desktop-on-Mac setups use), each container gets its **own** lightweight, purpose-built Linux VM via macOS's Virtualization framework. It's a general-purpose containerization tool rather than an AI-agent-specific product, but it's increasingly used as the isolation substrate for running coding agents on the Mac (community projects like `sandboxy` build directly on it).
+* **Built on:** Apple's Virtualization.framework, one VM per container. In this guide nothing else is built on Containerization itself; [Brig](#420-brig-open-source-microvms-for-coding-agents-on-macos-and-linux) and [Docker Sandboxes](#411-docker-sandboxes-disposable-microvms-for-ai-coding-agents) use Apple's hypervisor frameworks directly
 * **GitHub:** [apple/container](https://github.com/apple/container) (the user-facing CLI); [apple/containerization](https://github.com/apple/containerization) (the underlying Swift framework)
 * **Website:** [developer.apple.com](https://developer.apple.com/) (framework documentation; part of macOS 26 "Tahoe")
 * **Launch Date:** Announced **June 2025** at WWDC; open-sourced the same year.
@@ -570,6 +585,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 ### **4.15. NVIDIA OpenShell: Policy-Governed Sandboxing for Autonomous Agents**
 
 * **Overview:** OpenShell is NVIDIA's open-source runtime for sandboxing autonomous AI agents, enforcing declarative YAML policies across four layers: filesystem (restrict reads/writes to allowed paths), network (block unauthorized outbound connections), process (block privilege escalation and dangerous syscalls), and inference (a policy layer over the agent's own model calls). It's backend-agnostic, running on Docker, Podman, microVMs, or Kubernetes, and on Kubernetes it defines a `Sandbox` custom resource that a controller reconciles into scheduled pods, built on the Kubernetes SIG Agent Sandbox project.
+* **Built on:** A policy layer over [Docker/OCI containers](#dockeroci-containers), Podman, microVMs or Kubernetes; on Windows, [Microsoft MXC](#424-microsoft-execution-containers-mxc-native-agent-containment-on-windows)
 * **GitHub:** [NVIDIA/OpenShell](https://github.com/NVIDIA/OpenShell)
 * **Website:** [docs.nvidia.com/openshell](https://docs.nvidia.com/openshell/)
 * **Launch Date:** First released **February 2026**.
@@ -586,6 +602,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 ### **4.16. Koyeb Sandboxes: Bare-Metal MicroVMs for AI Agents**
 
 * **Overview:** Koyeb Sandboxes are Koyeb's managed, fully isolated environments for running AI-agent code, code generation, and other dynamic workloads. Koyeb is a Paris-founded serverless and GPU cloud provider (about $8.6M raised as of its last public round); in 2026 it agreed to be folded into Mistral AI's compute platform, so its infrastructure now sits behind one of the larger foundation-model labs rather than running as a standalone startup.
+* **Built on:** MicroVMs on bare-metal servers (proprietary stack)
 * **GitHub:** [koyeb/koyeb-sandbox-sdk-js](https://github.com/koyeb/koyeb-sandbox-sdk-js) (open-source SDK; the platform itself is proprietary)
 * **Website:** [koyeb.com](https://www.koyeb.com/)
 * **Launch Date:** Public preview on **November 19, 2025**. The underlying sandbox primitives had already been used by Koyeb customers since early 2025.
@@ -603,6 +620,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 ### **4.17. Amazing Sandbox: A Local CLI Wrapper Over OS-Native Sandboxing**
 
 * **Overview:** Amazing Sandbox (`asb`) is a small CLI that runs a given command, package manager, or coding agent inside whatever sandboxing primitive is native to your OS: Docker by default, Seatbelt on macOS, or Bubblewrap on Linux. The goal is narrow and practical: stop a compromised npm package or an overzealous AI agent from reading your whole disk or wiping files it shouldn't touch, without asking you to learn a new platform.
+* **Built on:** [Docker/OCI containers](#dockeroci-containers), [Seatbelt](#macos-seatbelt) or [bubblewrap](#bubblewrap), whichever the OS has
 * **GitHub:** [ashishb/amazing-sandbox](https://github.com/ashishb/amazing-sandbox)
 * **Website:** [ashishb.net/programming/amazing-sandbox](https://ashishb.net/programming/amazing-sandbox/)
 * **Launch Date:** First commit in December 2025.
@@ -619,6 +637,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 ### **4.18. nono: Per-Tool-Call Brokered Sandboxing for Agents**
 
 * **Overview:** nono is a local, OS-native sandbox for AI coding agents built by the team behind Sigstore. It runs directly on the developer's machine with no daemon, no container, and no VM: it wraps a process in the host kernel's own isolation primitives instead of virtualizing anything. Its defining feature is that it doesn't stop at sandboxing the agent process once. When an agent delegates to a real tool, `git`, `gh`, `curl`, `kubectl`, an MCP server, nono's broker re-sandboxes that specific call under its own policy, filesystem grants, network rules, and credentials, so a compromised `git` invocation can't inherit the agent's broader permissions.
+* **Built on:** [Seatbelt](#macos-seatbelt) on macOS, [Landlock](#landlock) on Linux
 * **GitHub:** [nolabs-ai/nono](https://github.com/nolabs-ai/nono) (project moved to this org from `always-further`; older references may still point there)
 * **Website:** [nono.sh](https://nono.sh)
 * **Launch Date:** GitHub history under the current org starts January 2026; the project existed earlier under the `always-further` namespace before the move.
@@ -636,6 +655,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 ### **4.19. Deno Sandbox: Firecracker MicroVMs on Deno Deploy**
 
 * **Overview:** Deno Sandbox is Deno's managed service for running untrusted or AI-generated code in the cloud, announced in beta on February 3, 2026. Each sandbox is a dedicated Firecracker microVM running in Deno Deploy's own infrastructure. It's in the same category as Vercel Sandbox, Koyeb Sandboxes, and AWS Bedrock AgentCore: a hosted alternative to running your own sandbox infrastructure, backed by a large platform rather than a smaller independent one.
+* **Built on:** [Firecracker](#firecracker) microVMs
 * **GitHub:** [denoland/sandbox-py](https://github.com/denoland/sandbox-py) (Python SDK; a JavaScript/TypeScript SDK is also offered, and the platform itself is proprietary)
 * **Website:** [deno.com/deploy/sandbox](https://deno.com/deploy/sandbox)
 * **Launch Date:** Announced **February 3, 2026**, currently in beta.
@@ -653,6 +673,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 ### **4.20. Brig: Open-Source MicroVMs for Coding Agents on macOS and Linux**
 
 * **Overview:** Coding agents install packages, run commands and use credentials. Under auto-approval they do all of that unattended, which is how a credential leaks or a command lands somewhere it should not. Brig runs the agent inside a microVM with its own Linux kernel, so a bad edit or a bad command reaches only what you handed it. Start with `brig run claude ~/code/project`.
+* **Built on:** Apple Hypervisor.framework or Virtualization.framework on macOS; urunc microVMs over KVM on Linux
 * **GitHub:** [brig-sh/brig](https://github.com/brig-sh/brig) (the `brig` CLI and the `brigd` session daemon), [brig-sh/hull](https://github.com/brig-sh/hull) (the microVM runtime on macOS), [brig-sh/hvi-vmm](https://github.com/brig-sh/hvi-vmm) (the microVMM hull drives on its `hvi` backend). On Linux, Brig drives `nerdctl` over containerd with the `urunc` shim, three projects it does not own.
 * **Website:** [brig.sh](https://brig.sh)
 * **Launch Date:** The repositories have been public since 12 August 2026. v0.2.0, the first stable release, shipped on 15 September 2026. hull and hvi-vmm version separately from the CLI.
@@ -672,6 +693,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 ### **4.21. Kubernetes Agent Sandbox: Declarative Sandboxes on Your Own Cluster**
 
 * **Overview:** Agent Sandbox is a Kubernetes SIG Apps project that adds a `Sandbox` custom resource and controller: a single, stateful pod with a stable identity and persistent storage, which fits an agent's workspace better than a Deployment or a StatefulSet. It is an orchestrator rather than an isolation layer: the pod runs under whatever secure runtime the cluster offers, typically gVisor or Kata Containers selected through `RuntimeClass`. For teams that already run Kubernetes, it is the self-hosted answer to e2b-style sandbox APIs.
+* **Built on:** [gVisor](#gvisor) or [Kata Containers](#48-kata-containers-secure-container-runtime), selected through `RuntimeClass`
 * **GitHub:** [kubernetes-sigs/agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox)
 * **Website:** [agent-sandbox.sigs.k8s.io](https://agent-sandbox.sigs.k8s.io)
 * **Launch Date:** Repository created August 2025; v0.1.0 in November 2025; v1.0.0 on 28 August 2026, with patch releases roughly weekly since.
@@ -690,6 +712,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 ### **4.22. Anthropic Sandbox Runtime (srt): OS-Native Sandboxing for Agents and MCP Servers**
 
 * **Overview:** srt is the sandbox Anthropic built for Claude Code, released as a standalone CLI and TypeScript library. It wraps any process, such as an agent, a local MCP server or a single shell command, in the host OS's own sandbox with no container or VM, and enforces filesystem and network restrictions on the whole process tree.
+* **Built on:** [Seatbelt](#macos-seatbelt) on macOS, [bubblewrap](#bubblewrap) on Linux
 * **GitHub:** [anthropics/sandbox-runtime](https://github.com/anthropics/sandbox-runtime)
 * **Website:** Documented in the repository; background in Anthropic's post [Beyond Permission Prompts](https://www.anthropic.com/engineering/claude-code-sandboxing).
 * **Launch Date:** October 2025, as a beta research preview; frequent releases since (v0.0.83 in November 2026).
@@ -707,6 +730,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 ### **4.23. Cloudflare Sandbox SDK: Per-User Linux VMs Driven from a Worker**
 
 * **Overview:** Where [Cloudflare Workers](#46-cloudflare-workers-edge-computing-with-v8-isolates) run JavaScript in V8 isolates, Sandboxes give each user, task or session a full Linux environment. A sandbox is a Durable Object plus the [Container](https://developers.cloudflare.com/containers/) it starts; Cloudflare describes them as Linux virtual machines. The Worker in front decides who gets which sandbox, which hosts it may reach and which credentials stay outside it.
+* **Built on:** Cloudflare Containers (Linux VMs) behind Durable Objects; the sibling of [Cloudflare Workers](#46-cloudflare-workers-edge-computing-with-v8-isolates)
 * **GitHub:** [cloudflare/sandbox-sdk](https://github.com/cloudflare/sandbox-sdk)
 * **Website:** [developers.cloudflare.com/sandbox](https://developers.cloudflare.com/sandbox/)
 * **Launch Date:** SDK first published June 2025 alongside the Containers beta; `@cloudflare/sandbox` 1.0 on 8 October 2026.
@@ -724,6 +748,7 @@ While the platforms above are specialized sandboxing runtimes, the broader categ
 ### **4.24. Microsoft Execution Containers (MXC): Native Agent Containment on Windows**
 
 * **Overview:** MXC is Microsoft's SDK for running untrusted code, such as model output, plugins and agent tool calls, under a declared policy. It builds into the calling application and launches the workload in whichever containment backend the host OS offers, so one policy format covers Windows, Linux and macOS. On Windows it is the first native answer to the per-command sandboxing that macOS (Seatbelt) and Linux (bubblewrap, Landlock) already had.
+* **Built on:** Windows ProcessContainer (plus Windows Sandbox, WSLC, MicroVM, Hyperlight); [bubblewrap](#bubblewrap) on Linux; [Seatbelt](#macos-seatbelt) on macOS
 * **GitHub:** [microsoft/mxc](https://github.com/microsoft/mxc)
 * **Website:** Announced in [Windows platform security for AI agents](https://blogs.windows.com/windowsdeveloper/2026/06/02/windows-platform-security-for-ai-agents/) (Build 2026); enterprise rollout in [Enterprise deployment of governed agents on Windows](https://blogs.windows.com/windowsdeveloper/2026/11/17/enterprise-deployment-of-governed-agents-on-windows/).
 * **Launch Date:** Repository public February 2026; early preview of the SDK announced at Build in June 2026. As of November 2026 process containment is the part available on Windows; Intune policy management is in private preview.
